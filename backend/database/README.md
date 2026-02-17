@@ -1,6 +1,6 @@
 # Database CMMS
 
-Skema dan seed data untuk menggantikan data in-memory di `backend/src/data/mock.ts`.
+**Go-live:** Backend tidak lagi menggunakan data mock. Semua data dibaca/tulis dari database. Wajib konfigurasi PostgreSQL dan jalankan skema (dan opsional seed) sebelum menjalankan backend.
 
 ## Persyaratan
 
@@ -23,7 +23,7 @@ Skema dan seed data untuk menggantikan data in-memory di `backend/src/data/mock.
 | Tabel | Keterangan singkat |
 |-------|---------------------|
 | `assets` | Mesin/aset (nama, section, health, last/next PM, **installed_at** untuk usia mesin) |
-| `work_orders` | Work order (WO); **section**, **created_at** dipakai filter Dashboard (Period/Section) |
+| `permintaan_perbaikan` | Permintaan perbaikan (WO); **section**, **created_at** dipakai filter Dashboard (Period/Section) |
 | `spare_parts` | Spare part & stok (spec, for_machine) |
 | `purchase_orders` | PO; **tanggal** dipakai filter Dashboard & fitur History banding harga supplier |
 | `upcoming_pm` | Jadwal PM (**asset_name** dipakai filter Dashboard by section) |
@@ -66,6 +66,13 @@ Jika tabel `assets` sudah ada tanpa kolom `installed_at`:
 ```sql
 ALTER TABLE assets ADD COLUMN IF NOT EXISTS installed_at DATE NULL;
 COMMENT ON COLUMN assets.installed_at IS 'Tanggal instalasi mesin (untuk hitung usia mesin)';
+```
+
+Jika tabel `upcoming_pm` sudah ada tanpa kolom keterangan:
+
+```sql
+ALTER TABLE upcoming_pm ADD COLUMN IF NOT EXISTS keterangan_status VARCHAR(50) NULL;
+ALTER TABLE upcoming_pm ADD COLUMN IF NOT EXISTS keterangan_notes TEXT NULL;
 ```
 
 Lalu isi ulang atau update seed sesuai kebutuhan.
@@ -115,7 +122,7 @@ Koneksi Node: `npm install mysql2`, gunakan `DATABASE_URL=mysql://...` atau `DB_
 
 ## Mapping ke mock & fitur aplikasi
 
-- `WorkOrder` → `work_orders` (section, created_at untuk filter Dashboard)
+- `WorkOrder` / Permintaan perbaikan → `permintaan_perbaikan` (section, created_at untuk filter Dashboard)
 - `Asset` → `assets` (**installed_at** untuk hitung usia mesin di form/tabel/View)
 - `SparePart` → `spare_parts` (spec, for_machine)
 - `PurchaseOrder` → `purchase_orders` (tanggal untuk filter & History PO)

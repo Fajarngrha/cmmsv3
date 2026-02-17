@@ -1,6 +1,6 @@
 # CMMS Dashboard Website
 
-Web-based CMMS (Computerized Maintenance Management System) dashboard for real-time monitoring and management of Work Orders, asset maintenance, spare parts inventory, PM compliance, maintenance costs, downtime, and asset health.
+Web-based CMMS (Computerized Maintenance Management System) dashboard for real-time monitoring and management of Permintaan perbaikan, asset maintenance, spare parts inventory, PM compliance, maintenance costs, downtime, and asset health.
 
 ## Tech Stack
 
@@ -10,9 +10,9 @@ Web-based CMMS (Computerized Maintenance Management System) dashboard for real-t
 
 ## Features (MVP)
 
-- **Dashboard:** KPIs (PM Compliance, Total Downtime, Maintenance Cost, Breakdown Count), Open WOs / Due Today / Assets in Maintenance / PM Rate, Trend Maintenance line chart, Pareto Downtime chart, Work Order Status & Asset Health summary, Upcoming PM Schedule, Quick Stats
-- **Work Orders:** List with filters, status badges (PM, Open, Pending, In Progress, Completed), Create Work Order modal (Tim Produksi) with Nama Mesin, Section, Jenis Kerusakan, Deskripsi
-- **Layout:** Header (title, period/area/machine/maintenance filters, Refresh, user profile), Sidebar (Dashboard, Work Orders, Assets, Inventory, Preventive Maintenance), Collapse
+- **Dashboard:** KPIs (PM Compliance, Total Downtime, Maintenance Cost, Breakdown Count), Open WOs / Due Today / Assets in Maintenance / PM Rate, Trend Maintenance line chart, Pareto Downtime chart, Status Permintaan perbaikan & Asset Health summary, Upcoming PM Schedule, Quick Stats
+- **Permintaan perbaikan:** List with filters, status badges (PM, Open, Pending, In Progress, Completed), Buat Permintaan perbaikan modal (Tim Produksi) with Nama Mesin, Section, Jenis Kerusakan, Deskripsi
+- **Layout:** Header (title, period/area/machine/maintenance filters, Refresh, user profile), Sidebar (Dashboard, Permintaan perbaikan, Assets, Inventory, Preventive Maintenance), Collapse
 
 ## Getting Started
 
@@ -75,10 +75,10 @@ Agar laptop/HP lain di WiFi yang sama bisa membuka aplikasi:
 | GET | `/api/dashboard/pareto` | Pareto downtime by cause |
 | GET | `/api/dashboard/upcoming-pm` | Upcoming PM schedule |
 | GET | `/api/dashboard/quick-stats` | Quick stats (response time, completed WOs, etc.) |
-| GET | `/api/dashboard/wo-status` | Work order status distribution |
+| GET | `/api/dashboard/wo-status` | Permintaan perbaikan status distribution |
 | GET | `/api/dashboard/asset-health` | Asset health counts (Running, Warning, Breakdown) |
-| GET | `/api/work-orders` | List work orders |
-| POST | `/api/work-orders` | Create work order (body: machineName, section, damageType, description?, reportedBy?) |
+| GET | `/api/permintaan-perbaikan` | List permintaan perbaikan |
+| POST | `/api/permintaan-perbaikan` | Create permintaan perbaikan (body: machineName, section, damageType, description?, reportedBy?) |
 
 ## Production (Frontend → Backend → Database)
 
@@ -92,7 +92,7 @@ Agar laptop/HP lain di WiFi yang sama bisa membuka aplikasi:
 - **Inventory:** Spare parts bar chart and stock levels
 - **Preventive Maintenance:** PM calendar and compliance detail
 - **Auth:** Login and role-based access (technician, manager, admin)
-- **Database:** Extend other modules (assets, work orders, inventory) to use PostgreSQL like purchase orders
+- **Database:** Extend other modules (assets, permintaan perbaikan, inventory) to use PostgreSQL like purchase orders
 - **Real-time:** WebSocket or polling for live updates
 
 ## License

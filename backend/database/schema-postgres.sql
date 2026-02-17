@@ -4,7 +4,7 @@
 -- ============================================================
 -- Fitur yang didukung:
 -- - Assets: health, uptime, installed_at (usia mesin), section
--- - Work Orders: section, created_at (filter Dashboard Period/Section), status, type
+-- - Permintaan perbaikan: section, created_at (filter Dashboard Period/Section), status, type
 -- - Purchase Orders: tanggal (filter Dashboard Period), untuk History & Maintenance Cost
 -- - Spare Parts: spec, for_machine
 -- - Upcoming PM: asset_name (filter Dashboard Section), scheduled_date
@@ -70,10 +70,10 @@ COMMENT ON COLUMN assets.asset_id IS 'e.g. AST-001';
 COMMENT ON COLUMN assets.installed_at IS 'Tanggal instalasi mesin (untuk hitung usia mesin)';
 
 -- ------------------------------------------------------------
--- Tabel: work_orders
+-- Tabel: permintaan_perbaikan (dulu work_orders)
 -- ------------------------------------------------------------
-DROP TABLE IF EXISTS work_orders CASCADE;
-CREATE TABLE work_orders (
+DROP TABLE IF EXISTS permintaan_perbaikan CASCADE;
+CREATE TABLE permintaan_perbaikan (
   id SERIAL PRIMARY KEY,
   wo_id VARCHAR(50) NOT NULL,
   machine_name VARCHAR(255) NOT NULL,
@@ -101,13 +101,13 @@ CREATE TABLE work_orders (
   pm_scheduled_date DATE
 );
 
-CREATE UNIQUE INDEX uq_work_orders_wo_id ON work_orders (wo_id);
-CREATE INDEX idx_work_orders_status ON work_orders (status);
-CREATE INDEX idx_work_orders_machine_name ON work_orders (machine_name);
-CREATE INDEX idx_work_orders_created_at ON work_orders (created_at);
-CREATE INDEX idx_work_orders_section ON work_orders (section);
+CREATE UNIQUE INDEX uq_permintaan_perbaikan_wo_id ON permintaan_perbaikan (wo_id);
+CREATE INDEX idx_permintaan_perbaikan_status ON permintaan_perbaikan (status);
+CREATE INDEX idx_permintaan_perbaikan_machine_name ON permintaan_perbaikan (machine_name);
+CREATE INDEX idx_permintaan_perbaikan_created_at ON permintaan_perbaikan (created_at);
+CREATE INDEX idx_permintaan_perbaikan_section ON permintaan_perbaikan (section);
 
-COMMENT ON COLUMN work_orders.wo_id IS 'e.g. WO1032';
+COMMENT ON COLUMN permintaan_perbaikan.wo_id IS 'e.g. Req1032';
 
 -- ------------------------------------------------------------
 -- Tabel: spare_parts
@@ -133,6 +133,26 @@ CREATE INDEX idx_spare_parts_category ON spare_parts (category);
 
 COMMENT ON COLUMN spare_parts.spec IS 'Spesifikasi part';
 COMMENT ON COLUMN spare_parts.for_machine IS 'Untuk mesin';
+
+-- ------------------------------------------------------------
+-- Tabel: spare_part_history (audit in/out)
+-- ------------------------------------------------------------
+DROP TABLE IF EXISTS spare_part_history CASCADE;
+CREATE TABLE spare_part_history (
+  id SERIAL PRIMARY KEY,
+  part_id INTEGER NOT NULL REFERENCES spare_parts(id) ON DELETE CASCADE,
+  part_code VARCHAR(50) NOT NULL,
+  part_name VARCHAR(255) NOT NULL,
+  type VARCHAR(10) NOT NULL CHECK (type IN ('in', 'out')),
+  qty INTEGER NOT NULL,
+  unit VARCHAR(20) NOT NULL,
+  reason TEXT,
+  pic VARCHAR(100),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_spare_part_history_part_id ON spare_part_history (part_id);
+CREATE INDEX idx_spare_part_history_created_at ON spare_part_history (created_at DESC);
 
 -- ------------------------------------------------------------
 -- Tabel: purchase_orders
@@ -201,6 +221,8 @@ CREATE TABLE upcoming_pm (
   audit_trail TEXT,
   photo_urls TEXT,
   report_generated BOOLEAN NOT NULL DEFAULT FALSE,
+  keterangan_status VARCHAR(50),
+  keterangan_notes TEXT,
   created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
@@ -232,6 +254,6 @@ CREATE TRIGGER trg_upcoming_pm_updated_at
 
 -- ------------------------------------------------------------
 -- Catatan:
--- - Dashboard KPIs dihitung dari work_orders, assets, purchase_orders.
+-- - Dashboard KPIs dihitung dari permintaan_perbaikan, assets, purchase_orders.
 -- - maintenance_trend, pareto_downtime, dll. = agregasi via query/VIEW.
 -- ------------------------------------------------------------

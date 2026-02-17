@@ -74,7 +74,7 @@ export function AddSparePartModal({ onClose, onSuccess }: AddSparePartModalProps
         </div>
 
         <p style={{ padding: '0 1.25rem', fontSize: '0.9rem', color: '#64748b', marginBottom: '1rem' }}>
-          Part code dapat dikosongkan untuk auto-generate (PRT-001, PRT-002, ...).
+          auto-generate (PRT-001, PRT-002, ...).
         </p>
 
         <form onSubmit={handleSubmit} style={{ padding: '0 1.25rem 1.25rem' }}>

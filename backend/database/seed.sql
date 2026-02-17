@@ -19,22 +19,22 @@ INSERT INTO assets (asset_id, name, section, health, last_pm_date, next_pm_date,
 ('AST-008', 'Air Compressor #2', 'Line 2', 'Warning', '2024-03-28', '2024-04-26', 85.00);
 
 -- ------------------------------------------------------------
--- Work Orders
+-- Permintaan perbaikan
 -- ------------------------------------------------------------
-INSERT INTO work_orders (wo_id, machine_name, machine_brand, section, machine_status, damage_type, status, due_date, reported_by, technician, assigned, type, created_at) VALUES
-('WO1032', 'Compressor Unit 1', 'Atlas Copco', 'Line 1', 'Running', 'Preventive maintenance scheduled', 'PM', '2024-04-24', 'Maintenance', 'Sehat', 'Agso', 'PM', '2024-04-20 08:00:00'),
-('WO1048', 'Conveyor Belt A', 'Siemens', 'Line 2', 'Stopped', 'Mechanical wear on belt; unusual noise when running', 'Open', '2024-04-20', 'Tim Produksi', 'Agus', 'Budi', 'Corrective', '2024-04-18 10:00:00'),
-('WO1051', 'Hydraulic Pump #2', 'ABB', 'Line 3', 'Breakdown', 'Leak detected at seal; oil pool under unit', 'Pending', '2024-04-27', 'Maintenance', 'Budi', 'Wiharyi', 'Corrective', '2024-04-22 09:00:00'),
-('WO1056', 'Boiler #1', 'Mitsubishi', 'Line 1', 'Under Maintenance', 'Pressure fluctuation; gauge reading inconsistent', 'Open', '2024-04-22', 'Tim Produksi', 'Rian', 'Riarp', 'Corrective', '2024-04-21 14:00:00'),
-('WO1042', 'Motor Listrik 3 Phase', 'Siemens', 'Line 2', 'Breakdown', 'Electrical; motor trips after 10 min run; burning smell', 'In Progress', '2024-04-25', 'Maintenance', 'Ahmad', 'Agso', 'Corrective', '2024-04-23 08:00:00'),
-('WO1065', 'Chiller System', 'Carrier', 'Line 3', 'Running', 'Cooling capacity drop; outlet temp rising', 'Pending', '2024-04-28', 'Tim Produksi', 'Dedi', 'Budi', 'Corrective', '2024-04-24 11:00:00');
+INSERT INTO permintaan_perbaikan (wo_id, machine_name, machine_brand, section, machine_status, damage_type, status, due_date, reported_by, technician, assigned, type, created_at) VALUES
+('Req1032', 'Compressor Unit 1', 'Atlas Copco', 'Line 1', 'Running', 'Preventive maintenance scheduled', 'PM', '2024-04-24', 'Maintenance', 'Sehat', 'Agso', 'PM', '2024-04-20 08:00:00'),
+('Req1048', 'Conveyor Belt A', 'Siemens', 'Line 2', 'Stopped', 'Mechanical wear on belt; unusual noise when running', 'Open', '2024-04-20', 'Tim Produksi', 'Agus', 'Budi', 'Corrective', '2024-04-18 10:00:00'),
+('Req1051', 'Hydraulic Pump #2', 'ABB', 'Line 3', 'Breakdown', 'Leak detected at seal; oil pool under unit', 'Pending', '2024-04-27', 'Maintenance', 'Budi', 'Wiharyi', 'Corrective', '2024-04-22 09:00:00'),
+('Req1056', 'Boiler #1', 'Mitsubishi', 'Line 1', 'Under Maintenance', 'Pressure fluctuation; gauge reading inconsistent', 'Open', '2024-04-22', 'Tim Produksi', 'Rian', 'Riarp', 'Corrective', '2024-04-21 14:00:00'),
+('Req1042', 'Motor Listrik 3 Phase', 'Siemens', 'Line 2', 'Breakdown', 'Electrical; motor trips after 10 min run; burning smell', 'In Progress', '2024-04-25', 'Maintenance', 'Ahmad', 'Agso', 'Corrective', '2024-04-23 08:00:00'),
+('Req1065', 'Chiller System', 'Carrier', 'Line 3', 'Running', 'Cooling capacity drop; outlet temp rising', 'Pending', '2024-04-28', 'Tim Produksi', 'Dedi', 'Budi', 'Corrective', '2024-04-24 11:00:00');
 
-UPDATE work_orders SET started_at = '2024-04-24 09:00:00' WHERE wo_id = 'WO1042';
+UPDATE permintaan_perbaikan SET started_at = '2024-04-24 09:00:00' WHERE wo_id = 'Req1042';
 
-INSERT INTO work_orders (wo_id, machine_name, machine_brand, section, machine_status, damage_type, status, due_date, reported_by, technician, type, created_at, closed_at, cause_of_damage, repairs_performed, action_type, replaced_spare_parts, replaced_parts_spec, replaced_parts_qty, total_downtime_hours) VALUES
-('WO1020', 'Compressor Unit 1', 'Atlas Copco', 'Line 1', 'Running', 'PM rutin; ganti filter dan oli', 'Completed', '2024-04-01', 'Maintenance', 'Sehat', 'PM', '2024-04-01 07:00:00', '2024-04-01 11:30:00', 'Scheduled PM', 'Ganti filter udara, ganti oli kompresor', 'Replace', 'Air Filter 10", Hydraulic Oil ISO 46', 'Filter 10 inch; Oil 5L', 2, 4.50),
-('WO1015', 'Compressor Unit 1', 'Atlas Copco', 'Line 1', 'Running', 'Bearing aus; suara tidak normal', 'Completed', '2024-03-10', 'Tim Produksi', 'Agus', 'Corrective', '2024-03-10 08:00:00', '2024-03-10 14:00:00', 'Bearing rusak akibat keausan', 'Ganti ball bearing 6205', 'Replace', 'Ball Bearing 6205', 'SKF 6205-2RS', 1, 6.00),
-('WO1018', 'Conveyor Belt A', 'Siemens', 'Line 2', 'Running', 'V-belt slip; conveyor lambat', 'Completed', '2024-03-20', 'Tim Produksi', 'Budi', 'Corrective', '2024-03-20 09:00:00', '2024-03-20 12:00:00', 'V-belt aus', 'Ganti V-belt', 'Replace', 'V-Belt A42', 'A42', 1, 3.00);
+INSERT INTO permintaan_perbaikan (wo_id, machine_name, machine_brand, section, machine_status, damage_type, status, due_date, reported_by, technician, type, created_at, closed_at, cause_of_damage, repairs_performed, action_type, replaced_spare_parts, replaced_parts_spec, replaced_parts_qty, total_downtime_hours) VALUES
+('Req1020', 'Compressor Unit 1', 'Atlas Copco', 'Line 1', 'Running', 'PM rutin; ganti filter dan oli', 'Completed', '2024-04-01', 'Maintenance', 'Sehat', 'PM', '2024-04-01 07:00:00', '2024-04-01 11:30:00', 'Scheduled PM', 'Ganti filter udara, ganti oli kompresor', 'Replace', 'Air Filter 10", Hydraulic Oil ISO 46', 'Filter 10 inch; Oil 5L', 2, 4.50),
+('Req1015', 'Compressor Unit 1', 'Atlas Copco', 'Line 1', 'Running', 'Bearing aus; suara tidak normal', 'Completed', '2024-03-10', 'Tim Produksi', 'Agus', 'Corrective', '2024-03-10 08:00:00', '2024-03-10 14:00:00', 'Bearing rusak akibat keausan', 'Ganti ball bearing 6205', 'Replace', 'Ball Bearing 6205', 'SKF 6205-2RS', 1, 6.00),
+('Req1018', 'Conveyor Belt A', 'Siemens', 'Line 2', 'Running', 'V-belt slip; conveyor lambat', 'Completed', '2024-03-20', 'Tim Produksi', 'Budi', 'Corrective', '2024-03-20 09:00:00', '2024-03-20 12:00:00', 'V-belt aus', 'Ganti V-belt', 'Replace', 'V-Belt A42', 'A42', 1, 3.00);
 
 -- ------------------------------------------------------------
 -- Spare Parts

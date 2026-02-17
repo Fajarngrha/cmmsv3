@@ -8,15 +8,15 @@ export type POStatusValue =
   | 'Tahap 6'
   | 'Tahap 7'
 
-/** Label tampilan untuk setiap status */
+/** Label tampilan untuk setiap status (awal kata capital) */
 export const PO_STATUS_LABELS: Record<POStatusValue, string> = {
   'Tahap 1': 'Tahap 1: Request Penawaran',
-  'Tahap 2': 'Tahap 2: Create SPB',
-  'Tahap 3': 'Tahap 3: CHECK BUDGET',
+  'Tahap 2': 'Tahap 2: Create Spb',
+  'Tahap 3': 'Tahap 3: Check Budget',
   'Tahap 4': 'Tahap 4: Check Draft',
   'Tahap 5': 'Tahap 5: Send Produksi',
-  'Tahap 6': 'Tahap 6: Release PO',
-  'Tahap 7': 'Tahap 7: COMPLETED',
+  'Tahap 6': 'Tahap 6: Release Po',
+  'Tahap 7': 'Tahap 7: Completed',
 }
 
 export const PO_STATUS_OPTIONS: { value: POStatusValue; label: string }[] = [

@@ -36,12 +36,12 @@ CREATE TABLE assets (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ------------------------------------------------------------
--- Tabel: work_orders
+-- Tabel: permintaan_perbaikan (dulu work_orders)
 -- ------------------------------------------------------------
-DROP TABLE IF EXISTS work_orders;
-CREATE TABLE work_orders (
+DROP TABLE IF EXISTS permintaan_perbaikan;
+CREATE TABLE permintaan_perbaikan (
   id INT UNSIGNED NOT NULL AUTO_INCREMENT,
-  wo_id VARCHAR(50) NOT NULL COMMENT 'e.g. WO1032',
+  wo_id VARCHAR(50) NOT NULL COMMENT 'e.g. Req1032',
   machine_name VARCHAR(255) NOT NULL,
   machine_brand VARCHAR(100) NULL,
   section VARCHAR(100) NOT NULL,
@@ -169,7 +169,7 @@ SET FOREIGN_KEY_CHECKS = 1;
 -- ------------------------------------------------------------
 -- Catatan:
 -- - Dashboard KPIs (pm_compliance, total_downtime, dll) dapat
---   dihitung dari work_orders, assets, purchase_orders via query.
+--   dihitung dari permintaan_perbaikan, assets, purchase_orders via query.
 -- - maintenance_trend, pareto_downtime, wo_status_distribution,
 --   asset_health_counts, quick_stats = agregasi, bisa VIEW atau
 --   query di aplikasi.

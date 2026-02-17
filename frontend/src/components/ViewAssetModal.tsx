@@ -57,7 +57,7 @@ export function ViewAssetModal({ asset, onClose }: ViewAssetModalProps) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    fetch(apiUrl('/api/work-orders'))
+    fetch(apiUrl('/api/permintaan-perbaikan'))
       .then((r) => r.json())
       .then((data: WorkOrder[]) => {
         const completed = (data || []).filter(
@@ -134,19 +134,19 @@ export function ViewAssetModal({ asset, onClose }: ViewAssetModalProps) {
             </div>
           </section>
 
-          {/* Riwayat perbaikan (dari WO Completed) */}
+          {/* Riwayat perbaikan (dari permintaan perbaikan Completed) */}
           <section className="wo-detail-section">
-            <h3 className="wo-detail-section-title">Riwayat Perbaikan (dari Work Order Completed)</h3>
+            <h3 className="wo-detail-section-title">Riwayat Perbaikan (dari Permintaan perbaikan Completed)</h3>
             {loading ? (
               <p style={{ color: '#64748b', margin: 0 }}>Memuat...</p>
             ) : workOrders.length === 0 ? (
-              <p style={{ color: '#64748b', margin: 0 }}>Belum ada riwayat work order completed untuk mesin ini.</p>
+              <p style={{ color: '#64748b', margin: 0 }}>Belum ada riwayat permintaan perbaikan completed untuk mesin ini.</p>
             ) : (
               <div style={{ overflow: 'auto' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
                   <thead>
                     <tr style={{ borderBottom: '2px solid #e2e8f0', textAlign: 'left' }}>
-                      <th style={{ padding: '0.5rem 0.75rem' }}>WO No</th>
+                      <th style={{ padding: '0.5rem 0.75rem' }}>No Registrasi</th>
                       <th style={{ padding: '0.5rem 0.75rem' }}>Tanggal Selesai</th>
                       <th style={{ padding: '0.5rem 0.75rem' }}>Jenis</th>
                       <th style={{ padding: '0.5rem 0.75rem' }}>Deskripsi Kerusakan</th>
@@ -181,7 +181,7 @@ export function ViewAssetModal({ asset, onClose }: ViewAssetModalProps) {
 
           {/* Spare part yang pernah diganti */}
           <section className="wo-detail-section">
-            <h3 className="wo-detail-section-title">Spare Part yang Pernah Diganti (dari WO Completed)</h3>
+            <h3 className="wo-detail-section-title">Spare Part yang Pernah Diganti (dari permintaan perbaikan Completed)</h3>
             {loading ? (
               <p style={{ color: '#64748b', margin: 0 }}>Memuat...</p>
             ) : sparePartsReplaced.length === 0 ? (
@@ -191,7 +191,7 @@ export function ViewAssetModal({ asset, onClose }: ViewAssetModalProps) {
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
                   <thead>
                     <tr style={{ borderBottom: '2px solid #e2e8f0', textAlign: 'left' }}>
-                      <th style={{ padding: '0.5rem 0.75rem' }}>WO No</th>
+                      <th style={{ padding: '0.5rem 0.75rem' }}>No Registrasi</th>
                       <th style={{ padding: '0.5rem 0.75rem' }}>Tanggal</th>
                       <th style={{ padding: '0.5rem 0.75rem' }}>Nama Spare Part</th>
                       <th style={{ padding: '0.5rem 0.75rem' }}>Spesifikasi</th>

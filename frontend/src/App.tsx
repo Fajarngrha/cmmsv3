@@ -1,7 +1,7 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { Layout } from './components/Layout'
 import { Dashboard } from './pages/Dashboard'
-import { WorkOrders } from './pages/WorkOrders'
+import { PermintaanPerbaikan } from './pages/PermintaanPerbaikan'
 import { Assets } from './pages/Assets'
 import { Inventory } from './pages/Inventory'
 import { PreventiveMaintenance } from './pages/PreventiveMaintenance'
@@ -13,7 +13,8 @@ function App() {
       <Routes>
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
         <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/work-orders" element={<WorkOrders />} />
+        <Route path="/work-orders" element={<Navigate to="/permintaan-perbaikan" replace />} />
+        <Route path="/permintaan-perbaikan" element={<PermintaanPerbaikan />} />
         <Route path="/assets" element={<Assets />} />
         <Route path="/inventory" element={<Inventory />} />
         <Route path="/preventive-maintenance" element={<PreventiveMaintenance />} />

@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { apiUrl } from '../api'
 import { CreateAssetModal } from '../components/CreateAssetModal'
 import { ViewAssetModal } from '../components/ViewAssetModal'
 import { hitungUsiaMesin } from '../utils/assetAge'
+import { exportToCsv, parseCsvToObjects, type CsvColumn } from '../utils/exportToCsv'
 
 interface Asset {
   id: string
@@ -24,6 +25,9 @@ export function Assets() {
   const [loading, setLoading] = useState(true)
   const [modalOpen, setModalOpen] = useState(false)
   const [viewAsset, setViewAsset] = useState<Asset | null>(null)
+  const [importMessage, setImportMessage] = useState<{ type: 'ok' | 'err'; text: string } | null>(null)
+  const [importing, setImporting] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const load = () => {
     fetch(apiUrl('/api/assets'))
@@ -40,6 +44,65 @@ export function Assets() {
   }, [])
 
   const sections = [...new Set(assets.map((a) => a.section))].sort()
+
+  const normalizeHealth = (v: string): 'Running' | 'Warning' | 'Breakdown' => {
+    const s = (v || '').trim().toLowerCase()
+    if (s === 'running') return 'Running'
+    if (s === 'warning' || s === 'needs attention') return 'Warning'
+    if (s === 'breakdown' || s === 'out of service') return 'Breakdown'
+    return 'Running'
+  }
+
+  const handleImportFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    setImportMessage(null)
+    if (!file) return
+    if (!file.name.toLowerCase().endsWith('.csv')) {
+      setImportMessage({ type: 'err', text: 'Pilih file CSV (.csv).' })
+      return
+    }
+    setImporting(true)
+    const reader = new FileReader()
+    reader.onload = () => {
+      const text = (reader.result as string) || ''
+      try {
+        const rows = parseCsvToObjects(text)
+        const payload = rows
+          .filter((r) => (r['Nama'] ?? r['name'] ?? '').trim() && (r['Section'] ?? r['section'] ?? '').trim())
+          .map((r) => ({
+            assetId: (r['Asset ID'] ?? r['assetId'] ?? '').trim() || undefined,
+            name: (r['Nama'] ?? r['name'] ?? '').trim(),
+            section: (r['Section'] ?? r['section'] ?? '').trim(),
+            lastPmDate: (r['Last PM'] ?? r['lastPmDate'] ?? '').trim() || undefined,
+            nextPmDate: (r['Next PM'] ?? r['nextPmDate'] ?? '').trim() || undefined,
+            health: normalizeHealth(r['Health'] ?? r['health'] ?? ''),
+            installedAt: (r['Installed At'] ?? r['installedAt'] ?? '').trim() || undefined,
+          }))
+        if (payload.length === 0) {
+          setImporting(false)
+          setImportMessage({ type: 'err', text: 'Tidak ada baris valid (Nama dan Section wajib).' })
+          return
+        }
+        fetch(apiUrl('/api/assets/import'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ assets: payload }),
+        })
+          .then((res) => res.json())
+          .then((data) => {
+            load()
+            setImportMessage({ type: 'ok', text: `${data.imported ?? 0} asset berhasil diimpor.` })
+          })
+          .catch(() => setImportMessage({ type: 'err', text: 'Gagal mengimpor. Periksa koneksi atau format data.' }))
+          .finally(() => setImporting(false))
+      } catch {
+        setImporting(false)
+        setImportMessage({ type: 'err', text: 'Format CSV tidak valid.' })
+      }
+    }
+    reader.readAsText(file, 'UTF-8')
+  }
 
   const filtered = assets.filter((a) => {
     const matchSearch =
@@ -80,10 +143,57 @@ export function Assets() {
             <div style={{ fontSize: '1.5rem', fontWeight: 700 }}>{assets.length}</div>
           </div>
         </div>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".csv"
+          style={{ display: 'none' }}
+          onChange={handleImportFile}
+        />
+        <button
+          type="button"
+          className="btn btn-secondary"
+          onClick={() => {
+            const columns: CsvColumn<Asset>[] = [
+              { header: 'Asset ID', key: 'assetId' },
+              { header: 'Nama', key: 'name' },
+              { header: 'Section', key: 'section' },
+              { header: 'Usia Mesin', getValue: (a) => hitungUsiaMesin(a.installedAt) },
+              { header: 'Last PM', key: 'lastPmDate' },
+              { header: 'Next PM', key: 'nextPmDate' },
+              { header: 'Health', key: 'health' },
+            ]
+            exportToCsv(filtered, columns, `assets-${new Date().toISOString().slice(0, 10)}.csv`)
+          }}
+        >
+          Export to CSV
+        </button>
+        <button
+          type="button"
+          className="btn btn-secondary"
+          disabled={importing}
+          onClick={() => fileInputRef.current?.click()}
+        >
+          {importing ? 'Mengimpor...' : 'Import data'}
+        </button>
         <button type="button" className="btn btn-primary" onClick={() => setModalOpen(true)}>
           + Tambah Asset
         </button>
       </div>
+      {importMessage && (
+        <p
+          style={{
+            margin: '-0.5rem 0 1rem',
+            padding: '0.5rem 0.75rem',
+            borderRadius: 6,
+            fontSize: '0.9rem',
+            background: importMessage.type === 'ok' ? '#dcfce7' : '#fee2e2',
+            color: importMessage.type === 'ok' ? '#166534' : '#991b1b',
+          }}
+        >
+          {importMessage.text}
+        </p>
+      )}
 
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '1rem' }}>
         <input

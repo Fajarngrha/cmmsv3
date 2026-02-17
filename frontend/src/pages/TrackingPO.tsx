@@ -3,6 +3,7 @@ import { apiUrl } from '../api'
 import { CreatePOModal } from '../components/CreatePOModal'
 import { HistoryPOModal } from '../components/HistoryPOModal'
 import { ViewPOModal } from '../components/ViewPOModal'
+import { exportToCsv, type CsvColumn } from '../utils/exportToCsv'
 import { getPOStatusLabel, PO_STATUS_OPTIONS } from '../utils/poStatus'
 
 interface PurchaseOrder {
@@ -95,6 +96,25 @@ export function TrackingPO() {
         </div>
         <button type="button" className="btn btn-secondary" onClick={() => setHistoryOpen(true)}>
           History
+        </button>
+        <button
+          type="button"
+          className="btn btn-secondary"
+          onClick={() => {
+            const columns: CsvColumn<PurchaseOrder>[] = [
+              { header: 'Tanggal', key: 'tanggal' },
+              { header: 'Item Deskripsi', key: 'itemDeskripsi' },
+              { header: 'Model', getValue: (po) => po.model ?? '—' },
+              { header: 'Harga/Unit', getValue: (po) => formatIdr(po.hargaPerUnit) },
+              { header: 'Qty', key: 'qty' },
+              { header: 'Mesin', getValue: (po) => po.mesin ?? '—' },
+              { header: 'Supplier', getValue: (po) => po.supplier ?? '—' },
+              { header: 'Status', getValue: (po) => getPOStatusLabel(po.status) },
+            ]
+            exportToCsv(filtered, columns, `tracking-po-${new Date().toISOString().slice(0, 10)}.csv`)
+          }}
+        >
+          Export to CSV
         </button>
         <button type="button" className="btn btn-primary" onClick={() => setModalOpen(true)}>
           + Tambah PO

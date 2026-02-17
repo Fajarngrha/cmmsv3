@@ -5,10 +5,11 @@ import path from 'path'
 import { fileURLToPath } from 'url'
 import fs from 'fs'
 import { dashboardRouter } from './routes/dashboard.js'
-import { workOrdersRouter } from './routes/workOrders.js'
+import { permintaanPerbaikanRouter } from './routes/permintaanPerbaikan.js'
 import { assetsRouter } from './routes/assets.js'
 import { inventoryRouter } from './routes/inventory.js'
 import { purchaseOrdersRouter } from './routes/purchaseOrders.js'
+import { query } from './db/index.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
@@ -19,7 +20,7 @@ const HOST = process.env.HOST || '0.0.0.0'
 app.use(cors())
 app.use(express.json())
 app.use('/api', dashboardRouter)
-app.use('/api', workOrdersRouter)
+app.use('/api', permintaanPerbaikanRouter)
 app.use('/api', assetsRouter)
 app.use('/api', inventoryRouter)
 app.use('/api', purchaseOrdersRouter)
@@ -34,12 +35,24 @@ if (fs.existsSync(staticDir)) {
   app.get('*', (_, res) => res.sendFile(path.join(staticDir, 'index.html')))
 }
 
-app.listen(PORT, HOST, () => {
-  console.log(`CMMS API: http://localhost:${PORT}`)
-  if (fs.existsSync(staticDir)) {
-    console.log('  Frontend static: dilayani dari', staticDir)
+async function start() {
+  try {
+    await query('SELECT 1')
+    console.log('Database: connected')
+  } catch (e) {
+    console.error('Database connection failed. Set DATABASE_URL or DB_* env vars and ensure PostgreSQL is running.')
+    console.error(e)
+    process.exit(1)
   }
-  if (HOST === '0.0.0.0') {
-    console.log('  Dapat diakses dari jaringan (WiFi) yang sama via IP komputer ini.')
-  }
-})
+  app.listen(PORT, HOST, () => {
+    console.log(`CMMS API: http://localhost:${PORT}`)
+    if (fs.existsSync(staticDir)) {
+      console.log('  Frontend static: dilayani dari', staticDir)
+    }
+    if (HOST === '0.0.0.0') {
+      console.log('  Dapat diakses dari jaringan (WiFi) yang sama via IP komputer ini.')
+    }
+  })
+}
+
+start()

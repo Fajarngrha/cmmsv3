@@ -16,9 +16,9 @@ import {
   Pie,
   Cell,
 } from 'recharts'
-import { ViewWorkOrderModal } from '../components/ViewWorkOrderModal'
+import { ViewPermintaanPerbaikanModal } from '../components/ViewPermintaanPerbaikanModal'
 
-interface WorkOrder {
+interface PermintaanPerbaikanItem {
   id: string
   woId: string
   machineName: string
@@ -109,7 +109,7 @@ export function Dashboard() {
 
   const [kpis, setKpis] = useState<DashboardKpis | null>(null)
   const [upcomingPM, setUpcomingPM] = useState<UpcomingPM[]>([])
-  const [workOrders, setWorkOrders] = useState<WorkOrder[]>([])
+  const [permintaanPerbaikan, setPermintaanPerbaikan] = useState<PermintaanPerbaikanItem[]>([])
   const [purchaseOrders, setPurchaseOrders] = useState<PurchaseOrder[]>([])
   const [assets, setAssets] = useState<Asset[]>([])
   const [viewWoId, setViewWoId] = useState<string | null>(null)
@@ -118,13 +118,13 @@ export function Dashboard() {
     Promise.all([
       fetch(apiUrl('/api/dashboard/kpis')).then((r) => r.json()),
       fetch(apiUrl('/api/dashboard/upcoming-pm')).then((r) => r.json()),
-      fetch(apiUrl('/api/work-orders')).then((r) => r.json()),
+      fetch(apiUrl('/api/permintaan-perbaikan')).then((r) => r.json()),
       fetch(apiUrl('/api/purchase-orders')).then((r) => r.json()),
       fetch(apiUrl('/api/assets')).then((r) => r.json()),
     ]).then(([k, u, woList, poList, assetList]) => {
       setKpis(k)
       setUpcomingPM(u || [])
-      setWorkOrders((woList as WorkOrder[]) || [])
+      setPermintaanPerbaikan((woList as PermintaanPerbaikanItem[]) || [])
       setPurchaseOrders((poList as PurchaseOrder[]) || [])
       setAssets((assetList as Asset[]) || [])
     })
@@ -132,12 +132,12 @@ export function Dashboard() {
 
   /** Filter WO menurut Period (createdAt) dan Section */
   const filteredWorkOrders = useMemo(() => {
-    return workOrders.filter((wo) => {
+    return permintaanPerbaikan.filter((wo) => {
       if (period !== 'all' && !wo.createdAt.startsWith(period)) return false
       if (section !== 'all' && wo.section !== section) return false
       return true
     })
-  }, [workOrders, period, section])
+  }, [permintaanPerbaikan, period, section])
 
   /** Filter PO menurut Period (tanggal) */
   const filteredPO = useMemo(() => {
@@ -248,7 +248,7 @@ export function Dashboard() {
 
   return (
     <div className="page">
-      {/* Work Order summary - sama seperti halaman Work Orders */}
+      {/* Ringkasan permintaan perbaikan - sama seperti halaman Permintaan perbaikan */}
       <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '1rem', marginBottom: '1.5rem' }}>
         <div className="grid-4" style={{ flex: 1, minWidth: 200 }}>
           <WoStatBox label="Total WO" value={totalWO} variant="blue" />
@@ -270,7 +270,7 @@ export function Dashboard() {
         <KpiCard
           title="Total Downtime (Jam)"
           value={typeof totalDowntimeFromWOs === 'number' ? String(Math.round(totalDowntimeFromWOs * 100) / 100) : '—'}
-          sub={period !== 'all' || section !== 'all' ? '' : 'Hours (dari Work Order)'}
+          sub={period !== 'all' || section !== 'all' ? '' : 'Jam (dari permintaan perbaikan)'}
           color="orange"
           icon="📈"
         />
@@ -281,12 +281,6 @@ export function Dashboard() {
           color="blue"
           icon="💰"
         />
-        <KpiCard
-          title="Breakdown Count"
-          value={kpis ? String(kpis.breakdownCount) : '—'}
-          color="red"
-          icon="!"
-        />
       </div>
 
       {/* Assets in Maintenance + Upcoming PM Schedule (sejajar) */}
@@ -294,7 +288,7 @@ export function Dashboard() {
         <StatCard
           title="Assets in Maintenance"
           value={assetsInMaintenanceCount}
-          sub="Sesuai filter (WO In Progress)"
+          sub="Sesuai filter (permintaan perbaikan In Progress)"
         />
         <div className="card">
           <h3 style={{ margin: '0 0 0.75rem', fontSize: '0.95rem' }}>Upcoming PM Schedule</h3>
@@ -332,7 +326,7 @@ export function Dashboard() {
         </div>
       </div>
 
-      {/* Charts kiri | Work Order Status kanan */}
+      {/* Charts kiri | Status Permintaan perbaikan kanan */}
       <div className="dashboard-with-sidebar">
         <div className="dashboard-left" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
@@ -371,7 +365,7 @@ export function Dashboard() {
         <div className="dashboard-sidebar" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           {pieData.length > 0 && (
             <div className="card">
-              <h3 style={{ margin: '0 0 0.75rem', fontSize: '0.95rem' }}>Work Order Status</h3>
+              <h3 style={{ margin: '0 0 0.75rem', fontSize: '0.95rem' }}>Status Permintaan perbaikan</h3>
               <ResponsiveContainer width="100%" height={180}>
                 <PieChart>
                   <Pie
@@ -397,16 +391,16 @@ export function Dashboard() {
         </div>
       </div>
 
-      {/* Semua Work Order (mengikuti filter Period & Section di header) */}
+      {/* Semua permintaan perbaikan (mengikuti filter Period & Section di header) */}
       <div className="card" style={{ marginTop: '1.5rem', overflow: 'auto' }}>
-        <h3 style={{ margin: '0 0 0.5rem', fontSize: '1.1rem' }}>Semua Work Order</h3>
+        <h3 style={{ margin: '0 0 0.5rem', fontSize: '1.1rem' }}>Semua Permintaan perbaikan</h3>
         <p style={{ margin: '0 0 1rem', fontSize: '0.85rem', color: '#64748b' }}>
           Filter: {period === 'all' ? 'All' : period} / {section === 'all' ? 'All' : section}
         </p>
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem' }}>
           <thead>
             <tr style={{ borderBottom: '2px solid #e2e8f0', textAlign: 'left' }}>
-              <th style={{ padding: '0.75rem' }}>Wo No</th>
+              <th style={{ padding: '0.75rem' }}>No Registrasi</th>
               <th style={{ padding: '0.75rem' }}>Date</th>
               <th style={{ padding: '0.75rem' }}>Machine</th>
               <th style={{ padding: '0.75rem' }}>Merk</th>
@@ -458,19 +452,19 @@ export function Dashboard() {
         </table>
         <div style={{ padding: '0.75rem 1rem', borderTop: '1px solid #f1f5f9', fontSize: '0.85rem', color: '#64748b' }}>
           {filteredWorkOrders.length > 0
-            ? `Menampilkan ${filteredWorkOrders.length} work order${workOrders.length !== filteredWorkOrders.length ? ` (filter dari ${workOrders.length} total)` : ''}`
-            : 'Tidak ada work order yang sesuai filter.'}
+            ? `Menampilkan ${filteredWorkOrders.length} permintaan perbaikan${permintaanPerbaikan.length !== filteredWorkOrders.length ? ` (filter dari ${permintaanPerbaikan.length} total)` : ''}`
+            : 'Tidak ada permintaan perbaikan yang sesuai filter.'}
         </div>
       </div>
 
       {viewWoId && (
-        <ViewWorkOrderModal
-          workOrderId={viewWoId}
+        <ViewPermintaanPerbaikanModal
+          permintaanPerbaikanId={viewWoId}
           onClose={() => setViewWoId(null)}
           onSuccess={() => {
-            fetch(apiUrl('/api/work-orders'))
+            fetch(apiUrl('/api/permintaan-perbaikan'))
               .then((r) => r.json())
-              .then(setWorkOrders)
+              .then(setPermintaanPerbaikan)
             setViewWoId(null)
           }}
         />

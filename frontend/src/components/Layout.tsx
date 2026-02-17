@@ -1,32 +1,72 @@
-import { ReactNode } from 'react'
+import { ReactNode, useState } from 'react'
 import { NavLink, useLocation, useSearchParams } from 'react-router-dom'
 
+const SIDEBAR_COLLAPSED_KEY = 'cmms-sidebar-collapsed'
+
 export function Layout({ children }: { children: ReactNode }) {
+  const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
+    try {
+      return localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === 'true'
+    } catch {
+      return false
+    }
+  })
+
+  const toggleCollapse = () => {
+    setSidebarCollapsed((prev) => {
+      const next = !prev
+      try {
+        localStorage.setItem(SIDEBAR_COLLAPSED_KEY, String(next))
+      } catch {}
+      return next
+    })
+  }
+
   return (
     <div className="app">
-      <Sidebar />
+      <div className="sidebar-backdrop" data-open={sidebarOpen} aria-hidden="true" onClick={() => setSidebarOpen(false)} />
+      <Sidebar
+        mobileOpen={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+        collapsed={sidebarCollapsed}
+        onCollapseToggle={toggleCollapse}
+      />
       <div className="main-content">
-        <Header />
+        <Header onMenuClick={() => setSidebarOpen(true)} />
         {children}
       </div>
     </div>
   )
 }
 
-export function Sidebar() {
+export function Sidebar({
+  mobileOpen,
+  onClose,
+  collapsed = false,
+  onCollapseToggle,
+}: {
+  mobileOpen?: boolean
+  onClose?: () => void
+  collapsed?: boolean
+  onCollapseToggle?: () => void
+}) {
   const links = [
     { to: '/dashboard', label: 'Dashboard', icon: '▦' },
-    { to: '/work-orders', label: 'Work Orders', icon: '📋' },
+    { to: '/permintaan-perbaikan', label: 'Permintaan perbaikan', icon: '📋' },
     { to: '/assets', label: 'Assets', icon: '🔧' },
     { to: '/inventory', label: 'Inventory', icon: '📦' },
     { to: '/tracking-po', label: 'Tracking PO', icon: '📄' },
     { to: '/preventive-maintenance', label: 'Preventive Maintenance', icon: '📅' },
   ]
   return (
-    <aside className="sidebar">
+    <aside className="sidebar" data-mobile-open={mobileOpen} data-collapsed={collapsed}>
       <div className="sidebar-brand">
-        <span className="sidebar-logo">⚙️</span>
-        <span className="sidebar-title">FCC</span>
+        <button type="button" className="sidebar-close-mobile" aria-label="Tutup menu" onClick={onClose}>
+          ×
+        </button>
+        <img src="Public\logo.png" alt="FID Maintenance System" className="sidebar-logo" />
+        <span className="sidebar-title">FID</span>
         <span className="sidebar-subtitle">Maintenance System</span>
       </div>
       <nav className="sidebar-nav">
@@ -35,14 +75,22 @@ export function Sidebar() {
             key={to}
             to={to}
             className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}
+            onClick={onClose}
+            title={label}
           >
             <span className="sidebar-link-icon">{icon}</span>
-            {label}
+            <span className="sidebar-link-text">{label}</span>
           </NavLink>
         ))}
       </nav>
-      <button type="button" className="sidebar-collapse" aria-label="Collapse sidebar">
-        &lt; Collapse
+      <button
+        type="button"
+        className="sidebar-collapse"
+        aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+        onClick={onCollapseToggle}
+      >
+        <span className="sidebar-collapse-icon">{collapsed ? '>' : '<'}</span>
+        <span className="sidebar-collapse-text">{collapsed ? 'Expand' : 'Collapse'}</span>
       </button>
     </aside>
   )
@@ -80,12 +128,12 @@ const SECTION_OPTIONS = [
   { value: 'Line 3', label: 'Line 3' },
 ]
 
-export function Header() {
+export function Header({ onMenuClick }: { onMenuClick?: () => void }) {
   const location = useLocation()
   const [searchParams, setSearchParams] = useSearchParams()
   const titles: Record<string, string> = {
     '/dashboard': 'DASHBOARD - MAINTENANCE',
-    '/work-orders': 'WORK ORDERS MANAGEMENT',
+    '/permintaan-perbaikan': 'PERMINTAAN PERBAIKAN',
     '/assets': 'Assets',
     '/inventory': 'Inventory',
     '/tracking-po': 'Tracking PO',
@@ -114,6 +162,14 @@ export function Header() {
 
   return (
     <header className="header">
+      <button
+        type="button"
+        className="header-menu-btn"
+        aria-label="Buka menu navigasi"
+        onClick={onMenuClick}
+      >
+        <span aria-hidden="true">☰</span>
+      </button>
       {isDashboard && (
         <div className="header-filters">
           <select

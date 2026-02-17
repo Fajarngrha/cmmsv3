@@ -1,101 +1,169 @@
 import { Router } from 'express';
-import { mock } from '../data/mock.js';
+import { query } from '../db/index.js';
+import { rowToSparePart, rowToSparePartMovement } from '../db/mappers.js';
 export const inventoryRouter = Router();
-inventoryRouter.get('/inventory/spare-parts', (_, res) => {
-    res.json(mock.spareParts);
+inventoryRouter.get('/inventory/spare-parts', async (_, res) => {
+    try {
+        const result = await query('SELECT * FROM spare_parts ORDER BY id');
+        res.json(result.rows.map((r) => rowToSparePart(r)));
+    }
+    catch (e) {
+        console.error(e);
+        res.status(500).json({ error: 'Gagal mengambil data spare parts' });
+    }
 });
-// Tambah spare part baru
-inventoryRouter.post('/inventory/spare-parts', (req, res) => {
-    const body = req.body;
-    if (!body.name?.trim()) {
-        return res.status(400).json({ error: 'Nama spare part wajib diisi.' });
+inventoryRouter.post('/inventory/spare-parts', async (req, res) => {
+    try {
+        const body = req.body;
+        if (!body.name?.trim())
+            return res.status(400).json({ error: 'Nama spare part wajib diisi.' });
+        if (!body.category?.trim())
+            return res.status(400).json({ error: 'Kategori wajib diisi.' });
+        const countResult = await query('SELECT COUNT(*)::int AS c FROM spare_parts');
+        const nextNum = (countResult.rows[0]?.c ?? 0) + 1;
+        const partCode = body.partCode?.trim() || `PRT-${String(nextNum).padStart(3, '0')}`;
+        const existing = await query('SELECT id FROM spare_parts WHERE LOWER(part_code) = LOWER($1)', [partCode]);
+        if (existing.rows.length > 0)
+            return res.status(400).json({ error: 'Part code sudah digunakan.' });
+        const stock = typeof body.stock === 'number' ? body.stock : Number(body.stock) || 0;
+        const minStock = typeof body.minStock === 'number' ? body.minStock : Number(body.minStock) || 0;
+        const result = await query(`INSERT INTO spare_parts (part_code, name, category, stock, min_stock, unit, location, spec, for_machine)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *`, [
+            partCode,
+            body.name.trim(),
+            body.category.trim(),
+            stock >= 0 ? stock : 0,
+            minStock >= 0 ? minStock : 0,
+            body.unit?.trim() || 'pcs',
+            body.location?.trim() || '',
+            body.spec?.trim() || null,
+            body.forMachine?.trim() || null,
+        ]);
+        const newPart = rowToSparePart(result.rows[0]);
+        if (newPart.stock > 0) {
+            await query(`INSERT INTO spare_part_history (part_id, part_code, part_name, type, qty, unit, reason, pic)
+         VALUES ($1, $2, $3, 'in', $4, $5, 'Stok awal', $6)`, [result.rows[0].id, newPart.partCode, newPart.name, newPart.stock, newPart.unit, body.pic?.trim() || null]);
+        }
+        res.status(201).json(newPart);
     }
-    if (!body.category?.trim()) {
-        return res.status(400).json({ error: 'Kategori wajib diisi.' });
+    catch (e) {
+        console.error(e);
+        res.status(500).json({ error: 'Gagal menambah spare part' });
     }
-    const partCode = body.partCode?.trim() || `PRT-${String(mock.spareParts.length + 1).padStart(3, '0')}`;
-    const existing = mock.spareParts.find((p) => p.partCode.toLowerCase() === partCode.toLowerCase());
-    if (existing) {
-        return res.status(400).json({ error: 'Part code sudah digunakan.' });
-    }
-    const stock = typeof body.stock === 'number' ? body.stock : Number(body.stock) || 0;
-    const minStock = typeof body.minStock === 'number' ? body.minStock : Number(body.minStock) || 0;
-    const id = String(mock.spareParts.length + 1);
-    const newPart = {
-        id,
-        partCode,
-        name: body.name.trim(),
-        category: body.category.trim(),
-        stock: stock >= 0 ? stock : 0,
-        minStock: minStock >= 0 ? minStock : 0,
-        unit: body.unit?.trim() || 'pcs',
-        location: body.location?.trim() || '',
-        spec: body.spec?.trim() || undefined,
-        forMachine: body.forMachine?.trim() || undefined,
-    };
-    mock.spareParts.push(newPart);
-    // Catat stok awal sebagai transaksi "masuk" untuk audit
-    if (newPart.stock > 0) {
-        const histId = String(mock.sparePartHistory.length + 1);
-        const movement = {
-            id: histId,
-            partId: newPart.id,
-            partCode: newPart.partCode,
-            partName: newPart.name,
-            type: 'in',
-            qty: newPart.stock,
-            unit: newPart.unit,
-            reason: 'Stok awal',
-            pic: body.pic?.trim() || undefined,
-            createdAt: new Date().toISOString(),
-        };
-        mock.sparePartHistory.unshift(movement);
-    }
-    res.status(201).json(newPart);
 });
-// History spare part masuk & keluar (untuk audit)
-inventoryRouter.get('/inventory/spare-parts/history', (req, res) => {
-    const type = req.query.type;
-    let list = [...mock.sparePartHistory];
-    if (type === 'in' || type === 'out') {
-        list = list.filter((h) => h.type === type);
+inventoryRouter.post('/inventory/spare-parts/import', async (req, res) => {
+    try {
+        const body = req.body;
+        const list = Array.isArray(body?.parts) ? body.parts : [];
+        if (list.length === 0)
+            return res.status(400).json({ error: 'Data spare parts kosong. Kirim array parts.' });
+        const created = [];
+        let skipped = 0;
+        let countResult = await query('SELECT COUNT(*)::int AS c FROM spare_parts');
+        let nextNum = countResult.rows[0]?.c ?? 0;
+        for (const row of list) {
+            if (!row.name?.trim() || !row.category?.trim())
+                continue;
+            nextNum += 1;
+            const partCode = row.partCode?.trim() || `PRT-${String(nextNum).padStart(3, '0')}`;
+            const existing = await query('SELECT id FROM spare_parts WHERE LOWER(part_code) = LOWER($1)', [partCode]);
+            if (existing.rows.length > 0) {
+                skipped += 1;
+                continue;
+            }
+            const stock = typeof row.stock === 'number' ? row.stock : Number(row.stock) || 0;
+            const minStock = typeof row.minStock === 'number' ? row.minStock : Number(row.minStock) || 0;
+            const result = await query(`INSERT INTO spare_parts (part_code, name, category, stock, min_stock, unit, location, spec, for_machine)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *`, [
+                partCode,
+                row.name.trim(),
+                row.category.trim(),
+                stock >= 0 ? stock : 0,
+                minStock >= 0 ? minStock : 0,
+                row.unit?.trim() || 'pcs',
+                row.location?.trim() || '',
+                row.spec?.trim() || null,
+                row.forMachine?.trim() || null,
+            ]);
+            const newPart = rowToSparePart(result.rows[0]);
+            if (newPart.stock > 0) {
+                await query(`INSERT INTO spare_part_history (part_id, part_code, part_name, type, qty, unit, reason)
+           VALUES ($1, $2, $3, 'in', $4, $5, 'Stok awal (import)')`, [result.rows[0].id, newPart.partCode, newPart.name, newPart.stock, newPart.unit]);
+            }
+            created.push(newPart);
+        }
+        res.status(201).json({ imported: created.length, skipped, parts: created });
     }
-    list.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-    res.json(list);
+    catch (e) {
+        console.error(e);
+        res.status(500).json({ error: 'Gagal mengimpor spare parts' });
+    }
 });
-// Keluar spare part (kurangi stock)
-inventoryRouter.patch('/inventory/spare-parts/:id/issue', (req, res) => {
-    const id = req.params.id;
-    const body = req.body;
-    const pic = typeof body.pic === 'string' ? body.pic.trim() : '';
-    if (!pic) {
-        return res.status(400).json({ error: 'PIC wajib diisi.' });
+inventoryRouter.get('/inventory/spare-parts/history', async (req, res) => {
+    try {
+        const type = req.query.type;
+        let sql = `SELECT h.* FROM spare_part_history h ORDER BY h.created_at DESC`;
+        let result;
+        if (type === 'in' || type === 'out') {
+            result = await query(`SELECT * FROM spare_part_history WHERE type = $1 ORDER BY created_at DESC`, [type]);
+        }
+        else {
+            result = await query('SELECT * FROM spare_part_history ORDER BY created_at DESC');
+        }
+        res.json(result.rows.map((r) => rowToSparePartMovement(r)));
     }
-    const qty = typeof body.qty === 'number' ? body.qty : Number(body.qty);
-    if (!Number.isInteger(qty) || qty <= 0) {
-        return res.status(400).json({ error: 'Jumlah keluar (qty) harus bilangan bulat positif.' });
+    catch (e) {
+        console.error(e);
+        res.status(500).json({ error: 'Gagal mengambil history spare part' });
     }
-    const part = mock.spareParts.find((p) => p.id === id);
-    if (!part) {
-        return res.status(404).json({ error: 'Spare part tidak ditemukan.' });
+});
+inventoryRouter.patch('/inventory/spare-parts/:id/issue', async (req, res) => {
+    try {
+        const id = req.params.id;
+        const body = req.body;
+        const pic = typeof body.pic === 'string' ? body.pic.trim() : '';
+        if (!pic)
+            return res.status(400).json({ error: 'PIC wajib diisi.' });
+        const qty = typeof body.qty === 'number' ? body.qty : Number(body.qty);
+        if (!Number.isInteger(qty) || qty <= 0)
+            return res.status(400).json({ error: 'Jumlah keluar (qty) harus bilangan bulat positif.' });
+        const partResult = await query('SELECT * FROM spare_parts WHERE id = $1', [id]);
+        if (partResult.rows.length === 0)
+            return res.status(404).json({ error: 'Spare part tidak ditemukan.' });
+        const row = partResult.rows[0];
+        const stock = Number(row.stock);
+        if (stock < qty)
+            return res.status(400).json({ error: `Stock tidak cukup. Tersedia: ${stock} ${row.unit}.` });
+        await query('UPDATE spare_parts SET stock = stock - $1 WHERE id = $2', [qty, id]);
+        await query(`INSERT INTO spare_part_history (part_id, part_code, part_name, type, qty, unit, reason, pic)
+       VALUES ($1, $2, $3, 'out', $4, $5, $6, $7)`, [id, row.part_code, row.name, qty, row.unit, body.reason?.trim() || null, pic]);
+        const updated = await query('SELECT * FROM spare_parts WHERE id = $1', [id]);
+        res.json(rowToSparePart(updated.rows[0]));
     }
-    if (part.stock < qty) {
-        return res.status(400).json({ error: `Stock tidak cukup. Tersedia: ${part.stock} ${part.unit}.` });
+    catch (e) {
+        console.error(e);
+        res.status(500).json({ error: 'Gagal mengeluarkan spare part' });
     }
-    part.stock -= qty;
-    const histId = String(mock.sparePartHistory.length + 1);
-    const movement = {
-        id: histId,
-        partId: part.id,
-        partCode: part.partCode,
-        partName: part.name,
-        type: 'out',
-        qty,
-        unit: part.unit,
-        reason: body.reason?.trim() || undefined,
-        pic,
-        createdAt: new Date().toISOString(),
-    };
-    mock.sparePartHistory.unshift(movement);
-    res.json(part);
+});
+inventoryRouter.patch('/inventory/spare-parts/:id/receive', async (req, res) => {
+    try {
+        const id = req.params.id;
+        const body = req.body;
+        const qty = typeof body.qty === 'number' ? body.qty : Number(body.qty);
+        if (!Number.isInteger(qty) || qty <= 0)
+            return res.status(400).json({ error: 'Qty masuk harus bilangan bulat positif.' });
+        const partResult = await query('SELECT * FROM spare_parts WHERE id = $1', [id]);
+        if (partResult.rows.length === 0)
+            return res.status(404).json({ error: 'Spare part tidak ditemukan.' });
+        const row = partResult.rows[0];
+        await query('UPDATE spare_parts SET stock = stock + $1 WHERE id = $2', [qty, id]);
+        await query(`INSERT INTO spare_part_history (part_id, part_code, part_name, type, qty, unit, reason, pic)
+       VALUES ($1, $2, $3, 'in', $4, $5, $6, $7)`, [id, row.part_code, row.name, qty, row.unit, body.reason?.trim() || null, body.pic?.trim() || null]);
+        const updated = await query('SELECT * FROM spare_parts WHERE id = $1', [id]);
+        res.json(rowToSparePart(updated.rows[0]));
+    }
+    catch (e) {
+        console.error(e);
+        res.status(500).json({ error: 'Gagal mencatat stok masuk' });
+    }
 });

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { apiUrl } from '../api'
 import { SchedulePMModal } from '../components/SchedulePMModal'
 import { ViewPMModal, type UpcomingPMDetail } from '../components/ViewPMModal'
+import { exportToCsv, type CsvColumn } from '../utils/exportToCsv'
 
 interface UpcomingPM {
   id: string
@@ -82,33 +83,25 @@ export function PreventiveMaintenance() {
           <div style={{ fontSize: '0.8rem', color: '#64748b' }}>Upcoming This Week</div>
           <div style={{ fontSize: '1.5rem', fontWeight: 700 }}>{upcomingPM.length}</div>
         </div>
-        <div className="card" style={{ borderLeft: '4px solid #64748b' }}>
-          <div style={{ fontSize: '0.8rem', color: '#64748b' }}>PM Compliance Rate</div>
-          <div style={{ fontSize: '1.5rem', fontWeight: 700 }}>{kpis?.pmComplianceRate ?? '—'}%</div>
-          {kpis && (
-            <div style={{ marginTop: '0.5rem' }}>
-              <div style={{ height: 6, background: '#e2e8f0', borderRadius: 3, overflow: 'hidden' }}>
-                <div
-                  style={{
-                    width: `${kpis.pmComplianceRate}%`,
-                    height: '100%',
-                    background: '#22c55e',
-                    borderRadius: 3,
-                  }}
-                />
-              </div>
-            </div>
-          )}
-        </div>
-        <div className="card" style={{ borderLeft: '4px solid #8b5cf6' }}>
-          <div style={{ fontSize: '0.8rem', color: '#64748b' }}>Color Zone</div>
-          <div style={{ fontSize: '0.95rem', fontWeight: 600 }}>
-            Green (Safe) / Yellow (Warning) / Red (Problematic)
-          </div>
-        </div>
       </div>
 
-      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '1rem' }}>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginBottom: '1rem' }}>
+        <button
+          type="button"
+          className="btn btn-secondary"
+          onClick={() => {
+            const columns: CsvColumn<UpcomingPM>[] = [
+              { header: 'PM ID', key: 'pmId' },
+              { header: 'Asset', key: 'assetName' },
+              { header: 'Activity', key: 'activity' },
+              { header: 'Scheduled Date', key: 'scheduledDate' },
+              { header: 'Assigned To', key: 'assignedTo' },
+            ]
+            exportToCsv(upcomingPM, columns, `preventive-maintenance-${new Date().toISOString().slice(0, 10)}.csv`)
+          }}
+        >
+          Export to CSV
+        </button>
         <button type="button" className="btn btn-primary" onClick={() => setScheduleModalOpen(true)}>
           + Schedule PM
         </button>

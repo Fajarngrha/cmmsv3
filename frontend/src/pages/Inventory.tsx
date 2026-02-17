@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 import { apiUrl } from '../api'
 import { AddSparePartModal } from '../components/AddSparePartModal'
 import { IssueSparePartModal } from '../components/IssueSparePartModal'
+import { exportToCsv, parseCsvToObjects, type CsvColumn } from '../utils/exportToCsv'
 
 interface SparePart {
   id: string
@@ -39,6 +40,13 @@ export function Inventory() {
   const [issuePart, setIssuePart] = useState<SparePart | null>(null)
   const [history, setHistory] = useState<SparePartMovement[]>([])
   const [historyTypeFilter, setHistoryTypeFilter] = useState<'all' | 'in' | 'out'>('all')
+  const [importMessage, setImportMessage] = useState<{ type: 'ok' | 'err'; text: string } | null>(null)
+  const [importing, setImporting] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [actionMenuOpenId, setActionMenuOpenId] = useState<string | null>(null)
+  const [receivePartId, setReceivePartId] = useState<string | null>(null)
+  const [receiveQty, setReceiveQty] = useState('')
+  const actionMenuRef = useRef<HTMLDivElement>(null)
 
   const load = () => {
     fetch(apiUrl('/api/inventory/spare-parts'))
@@ -66,7 +74,78 @@ export function Inventory() {
     loadHistory()
   }, [historyTypeFilter])
 
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (actionMenuRef.current && !actionMenuRef.current.contains(e.target as Node)) {
+        setActionMenuOpenId(null)
+        setReceivePartId(null)
+        setReceiveQty('')
+      }
+    }
+    if (actionMenuOpenId) {
+      document.addEventListener('mousedown', handleClickOutside)
+      return () => document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [actionMenuOpenId])
+
   const categories = [...new Set(parts.map((p) => p.category))].sort()
+
+  const handleImportFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    setImportMessage(null)
+    if (!file) return
+    if (!file.name.toLowerCase().endsWith('.csv')) {
+      setImportMessage({ type: 'err', text: 'Pilih file CSV (.csv).' })
+      return
+    }
+    setImporting(true)
+    const reader = new FileReader()
+    reader.onload = () => {
+      const text = (reader.result as string) || ''
+      try {
+        const rows = parseCsvToObjects(text)
+        const payload = rows
+          .filter((r) => (r['Nama'] ?? r['name'] ?? '').trim() && (r['Category'] ?? r['category'] ?? '').trim())
+          .map((r) => ({
+            partCode: (r['Part Code'] ?? r['partCode'] ?? '').trim() || undefined,
+            name: (r['Nama'] ?? r['name'] ?? '').trim(),
+            spec: (r['Spesifikasi'] ?? r['spec'] ?? '').trim() || undefined,
+            forMachine: (r['Untuk Mesin'] ?? r['forMachine'] ?? '').trim() || undefined,
+            category: (r['Category'] ?? r['category'] ?? '').trim(),
+            stock: Number(r['Stock'] ?? r['stock']) || 0,
+            minStock: Number(r['Min Stock'] ?? r['minStock']) || 0,
+            unit: (r['Unit'] ?? r['unit'] ?? 'pcs').trim() || 'pcs',
+            location: (r['Location'] ?? r['location'] ?? '').trim() || undefined,
+          }))
+        if (payload.length === 0) {
+          setImporting(false)
+          setImportMessage({ type: 'err', text: 'Tidak ada baris valid (Nama dan Category wajib).' })
+          return
+        }
+        fetch(apiUrl('/api/inventory/spare-parts/import'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ parts: payload }),
+        })
+          .then((res) => res.json())
+          .then((data) => {
+            load()
+            loadHistory()
+            const msg = data.skipped
+              ? `${data.imported ?? 0} spare part diimpor, ${data.skipped} dilewati (Part Code duplikat).`
+              : `${data.imported ?? 0} spare part berhasil diimpor.`
+            setImportMessage({ type: 'ok', text: msg })
+          })
+          .catch(() => setImportMessage({ type: 'err', text: 'Gagal mengimpor. Periksa koneksi atau format data.' }))
+          .finally(() => setImporting(false))
+      } catch {
+        setImporting(false)
+        setImportMessage({ type: 'err', text: 'Format CSV tidak valid.' })
+      }
+    }
+    reader.readAsText(file, 'UTF-8')
+  }
 
   const filtered = parts.filter((p) => {
     const matchSearch =
@@ -85,11 +164,33 @@ export function Inventory() {
 
   const lowStockCount = parts.filter((p) => p.stock <= p.minStock).length
 
+  const handleReceiveSubmit = (partId: string) => {
+    const qty = Number(receiveQty)
+    if (!Number.isInteger(qty) || qty <= 0) {
+      return
+    }
+    fetch(apiUrl(`/api/inventory/spare-parts/${partId}/receive`), {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ qty }),
+    })
+      .then((r) => {
+        if (r.ok) {
+          load()
+          loadHistory()
+          setActionMenuOpenId(null)
+          setReceivePartId(null)
+          setReceiveQty('')
+        }
+      })
+      .catch(() => {})
+  }
+
   return (
     <div className="page">
       <h1 style={{ margin: '0 0 0.25rem', fontSize: '1.5rem' }}>Spare Parts Inventory</h1>
       <p style={{ margin: '0 0 1.5rem', color: '#64748b', fontSize: '0.9rem' }}>
-        Monitor stock levels to avoid delays in work orders
+        Monitor stock levels to avoid delays in permintaan perbaikan
       </p>
 
       <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '1rem', marginBottom: '1.5rem' }}>
@@ -101,10 +202,60 @@ export function Inventory() {
           <div style={{ fontSize: '0.8rem', color: '#64748b' }}>Low Stock Items</div>
           <div style={{ fontSize: '1.5rem', fontWeight: 700 }}>{lowStockCount}</div>
         </div>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".csv"
+          style={{ display: 'none' }}
+          onChange={handleImportFile}
+        />
+        <button
+          type="button"
+          className="btn btn-secondary"
+          onClick={() => {
+            const columns: CsvColumn<SparePart>[] = [
+              { header: 'Part Code', key: 'partCode' },
+              { header: 'Nama', key: 'name' },
+              { header: 'Spesifikasi', getValue: (p) => p.spec ?? '—' },
+              { header: 'Untuk Mesin', getValue: (p) => p.forMachine ?? '—' },
+              { header: 'Category', key: 'category' },
+              { header: 'Stock', key: 'stock' },
+              { header: 'Min Stock', key: 'minStock' },
+              { header: 'Unit', key: 'unit' },
+              { header: 'Location', key: 'location' },
+              { header: 'Status', getValue: (p) => (p.stock <= p.minStock ? 'Low Stock' : 'OK') },
+            ]
+            exportToCsv(filtered, columns, `inventory-spare-parts-${new Date().toISOString().slice(0, 10)}.csv`)
+          }}
+        >
+          Export to CSV
+        </button>
+        <button
+          type="button"
+          className="btn btn-secondary"
+          disabled={importing}
+          onClick={() => fileInputRef.current?.click()}
+        >
+          {importing ? 'Mengimpor...' : 'Import data'}
+        </button>
         <button type="button" className="btn btn-primary" onClick={() => setAddModalOpen(true)}>
           + Tambah Spare Part
         </button>
       </div>
+      {importMessage && (
+        <p
+          style={{
+            margin: '-0.5rem 0 1rem',
+            padding: '0.5rem 0.75rem',
+            borderRadius: 6,
+            fontSize: '0.9rem',
+            background: importMessage.type === 'ok' ? '#dcfce7' : '#fee2e2',
+            color: importMessage.type === 'ok' ? '#166534' : '#991b1b',
+          }}
+        >
+          {importMessage.text}
+        </p>
+      )}
 
       <div className="card" style={{ marginBottom: '1.5rem' }}>
         <h3 style={{ margin: '0 0 1rem', fontSize: '1rem' }}>Stock by Category</h3>
@@ -185,17 +336,96 @@ export function Inventory() {
                         <span className="badge badge-completed">OK</span>
                       )}
                     </td>
-                    <td style={{ padding: '0.75rem' }}>
-                      <button
-                        type="button"
-                        className="btn btn-secondary"
-                        style={{ padding: '0.35rem 0.65rem', fontSize: '0.8rem' }}
-                        onClick={() => setIssuePart(p)}
-                        disabled={p.stock <= 0}
-                        title={p.stock <= 0 ? 'Stock habis' : 'Keluar spare part'}
-                      >
-                        Keluar
-                      </button>
+                    <td style={{ padding: '0.75rem', position: 'relative' }}>
+                      <div ref={actionMenuOpenId === p.id ? actionMenuRef : undefined} style={{ position: 'relative', display: 'inline-block' }}>
+                        <button
+                          type="button"
+                          className="btn btn-secondary"
+                          style={{ padding: '0.35rem 0.5rem', fontSize: '0.9rem' }}
+                          onClick={() => {
+                            if (actionMenuOpenId === p.id) {
+                              setActionMenuOpenId(null)
+                              setReceivePartId(null)
+                              setReceiveQty('')
+                            } else {
+                              setActionMenuOpenId(p.id)
+                              setReceivePartId(null)
+                              setReceiveQty('')
+                            }
+                          }}
+                          title="Aksi"
+                        >
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>
+                        </button>
+                        {actionMenuOpenId === p.id && (
+                          <div
+                            style={{
+                              position: 'absolute',
+                              top: '100%',
+                              right: 0,
+                              marginTop: 4,
+                              minWidth: 160,
+                              background: '#fff',
+                              border: '1px solid #e2e8f0',
+                              borderRadius: 8,
+                              boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                              zIndex: 50,
+                              padding: receivePartId === p.id ? '0.75rem' : '0.5rem',
+                            }}
+                          >
+                            {receivePartId === p.id ? (
+                              <>
+                                <label style={{ display: 'block', fontSize: '0.8rem', marginBottom: 4, fontWeight: 500 }}>Qty masuk</label>
+                                <input
+                                  type="number"
+                                  min={1}
+                                  className="input"
+                                  value={receiveQty}
+                                  onChange={(e) => setReceiveQty(e.target.value)}
+                                  placeholder="Jumlah"
+                                  style={{ width: '100%', marginBottom: 8 }}
+                                />
+                                <div style={{ display: 'flex', gap: 6 }}>
+                                  <button
+                                    type="button"
+                                    className="btn btn-primary"
+                                    style={{ flex: 1, padding: '0.4rem 0.5rem', fontSize: '0.8rem' }}
+                                    onClick={() => handleReceiveSubmit(p.id)}
+                                  >
+                                    Simpan
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className="btn btn-secondary"
+                                    style={{ padding: '0.4rem 0.5rem', fontSize: '0.8rem' }}
+                                    onClick={() => { setReceivePartId(null); setReceiveQty('') }}
+                                  >
+                                    Batal
+                                  </button>
+                                </div>
+                              </>
+                            ) : (
+                              <>
+                                <button
+                                  type="button"
+                                  style={{ display: 'block', width: '100%', padding: '0.5rem 0.75rem', textAlign: 'left', border: 'none', background: 'none', cursor: 'pointer', fontSize: '0.9rem' }}
+                                  onClick={() => { setActionMenuOpenId(null); setIssuePart(p) }}
+                                  disabled={p.stock <= 0}
+                                >
+                                  Keluar
+                                </button>
+                                <button
+                                  type="button"
+                                  style={{ display: 'block', width: '100%', padding: '0.5rem 0.75rem', textAlign: 'left', border: 'none', background: 'none', cursor: 'pointer', fontSize: '0.9rem' }}
+                                  onClick={() => setReceivePartId(p.id)}
+                                >
+                                  Masuk
+                                </button>
+                              </>
+                            )}
+                          </div>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 )

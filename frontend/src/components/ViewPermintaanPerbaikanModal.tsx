@@ -12,7 +12,7 @@ const JENIS_TINDAKAN_OPTIONS = [
   'Service Rutin',
 ] as const
 
-interface WorkOrderDetail {
+interface PermintaanPerbaikanDetail {
   id: string
   woId: string
   machineName: string
@@ -38,8 +38,8 @@ interface WorkOrderDetail {
   pmScheduledDate?: string
 }
 
-interface ViewWorkOrderModalProps {
-  workOrderId: string
+interface ViewPermintaanPerbaikanModalProps {
+  permintaanPerbaikanId: string
   onClose: () => void
   onSuccess: () => void
 }
@@ -57,13 +57,12 @@ function formatDateTime(s: string) {
   return new Date(s).toLocaleString('en-GB', { dateStyle: 'short', timeStyle: 'medium' })
 }
 
-export function ViewWorkOrderModal({ workOrderId, onClose, onSuccess }: ViewWorkOrderModalProps) {
-  const [wo, setWo] = useState<WorkOrderDetail | null>(null)
+export function ViewPermintaanPerbaikanModal({ permintaanPerbaikanId, onClose, onSuccess }: ViewPermintaanPerbaikanModalProps) {
+  const [wo, setWo] = useState<PermintaanPerbaikanDetail | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [actionLoading, setActionLoading] = useState(false)
 
-  // Close form state (when status is In Progress)
   const [causeOfDamage, setCauseOfDamage] = useState('')
   const [repairsPerformed, setRepairsPerformed] = useState('')
   const [actionType, setActionType] = useState('')
@@ -73,30 +72,30 @@ export function ViewWorkOrderModal({ workOrderId, onClose, onSuccess }: ViewWork
   const [technician, setTechnician] = useState('')
   const [closeError, setCloseError] = useState('')
   const [liveDowntime, setLiveDowntime] = useState<number | null>(null)
-  // Ubah status (Tim Maintenance)
   const [newStatusChoice, setNewStatusChoice] = useState('')
   const [pmScheduledDate, setPmScheduledDate] = useState('')
   const [pendingReason, setPendingReason] = useState('')
   const [statusChangeError, setStatusChangeError] = useState('')
 
+  const apiBase = `/api/permintaan-perbaikan/${permintaanPerbaikanId}`
+
   const fetchWo = () => {
     setLoading(true)
     setError('')
-    fetch(apiUrl(`/api/work-orders/${workOrderId}`))
+    fetch(apiUrl(apiBase))
       .then((r) => {
-        if (!r.ok) throw new Error('Work order not found')
+        if (!r.ok) throw new Error('Permintaan perbaikan tidak ditemukan')
         return r.json()
       })
       .then(setWo)
-      .catch(() => setError('Failed to load work order.'))
+      .catch(() => setError('Gagal memuat permintaan perbaikan.'))
       .finally(() => setLoading(false))
   }
 
   useEffect(() => {
     fetchWo()
-  }, [workOrderId])
+  }, [permintaanPerbaikanId])
 
-  // Pre-fill form when WO is loaded (e.g. re-open after refresh)
   useEffect(() => {
     if (!wo) return
     setCauseOfDamage(wo.causeOfDamage ?? '')
@@ -110,7 +109,6 @@ export function ViewWorkOrderModal({ workOrderId, onClose, onSuccess }: ViewWork
     setPendingReason(wo.pendingReason ?? '')
   }, [wo?.id])
 
-  // Live total downtime when status is In Progress
   useEffect(() => {
     if (!wo || wo.status !== 'In Progress' || !wo.startedAt) {
       setLiveDowntime(null)
@@ -126,82 +124,10 @@ export function ViewWorkOrderModal({ workOrderId, onClose, onSuccess }: ViewWork
     return () => clearInterval(interval)
   }, [wo?.id, wo?.status, wo?.startedAt])
 
-  const handleMarkInProgress = () => {
-    setActionLoading(true)
-    setError('')
-    fetch(apiUrl(`/api/work-orders/${workOrderId}`), {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status: 'In Progress' }),
-    })
-      .then((r) => {
-        if (!r.ok) throw new Error('Failed to update status')
-        return r.json()
-      })
-      .then(() => {
-        fetchWo()
-        onSuccess()
-      })
-      .catch(() => setError('Failed to mark as In Progress.'))
-      .finally(() => setActionLoading(false))
-  }
-
-  const handleCloseWo = (e: React.FormEvent) => {
-    e.preventDefault()
-    setCloseError('')
-    if (!causeOfDamage.trim()) {
-      setCloseError('Penyebab kerusakan wajib diisi.')
-      return
-    }
-    if (!repairsPerformed.trim()) {
-      setCloseError('Tindakan perbaikan wajib diisi.')
-      return
-    }
-    if (!actionType) {
-      setCloseError('Jenis tindakan wajib dipilih.')
-      return
-    }
-    if (actionType === 'Replace') {
-      if (!replacedSpareParts.trim()) {
-        setCloseError('Nama sparepart wajib diisi ketika jenis tindakan Replace.')
-        return
-      }
-    }
-    if (!technician.trim()) {
-      setCloseError('Teknisi wajib diisi.')
-      return
-    }
-    setActionLoading(true)
-    fetch(apiUrl(`/api/work-orders/${workOrderId}`), {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        status: 'Completed',
-        causeOfDamage: causeOfDamage.trim(),
-        repairsPerformed: repairsPerformed.trim(),
-        actionType,
-        replacedSpareParts: replacedSpareParts.trim() || undefined,
-        replacedPartsSpec: replacedPartsSpec.trim() || undefined,
-        replacedPartsQty: replacedPartsQty === '' ? undefined : Number(replacedPartsQty),
-        technician: technician.trim(),
-      }),
-    })
-      .then((r) => {
-        if (!r.ok) throw new Error('Failed to close work order')
-        return r.json()
-      })
-      .then(() => {
-        fetchWo()
-        onSuccess()
-      })
-      .catch(() => setCloseError('Failed to close work order.'))
-      .finally(() => setActionLoading(false))
-  }
-
   const patchStatus = (payload: { status: string; pendingReason?: string; pmScheduledDate?: string }) => {
     setStatusChangeError('')
     setActionLoading(true)
-    fetch(apiUrl(`/api/work-orders/${workOrderId}`), {
+    fetch(apiUrl(apiBase), {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
@@ -239,13 +165,63 @@ export function ViewWorkOrderModal({ workOrderId, onClose, onSuccess }: ViewWork
     patchStatus({ status: 'PM', pmScheduledDate: pmScheduledDate.trim() })
   }
 
+  const handleCloseWo = (e: React.FormEvent) => {
+    e.preventDefault()
+    setCloseError('')
+    if (!causeOfDamage.trim()) {
+      setCloseError('Penyebab kerusakan wajib diisi.')
+      return
+    }
+    if (!repairsPerformed.trim()) {
+      setCloseError('Tindakan perbaikan wajib diisi.')
+      return
+    }
+    if (!actionType) {
+      setCloseError('Jenis tindakan wajib dipilih.')
+      return
+    }
+    if (actionType === 'Replace' && !replacedSpareParts.trim()) {
+      setCloseError('Nama sparepart wajib diisi ketika jenis tindakan Replace.')
+      return
+    }
+    if (!technician.trim()) {
+      setCloseError('Teknisi wajib diisi.')
+      return
+    }
+    setActionLoading(true)
+    fetch(apiUrl(apiBase), {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        status: 'Completed',
+        causeOfDamage: causeOfDamage.trim(),
+        repairsPerformed: repairsPerformed.trim(),
+        actionType,
+        replacedSpareParts: replacedSpareParts.trim() || undefined,
+        replacedPartsSpec: replacedPartsSpec.trim() || undefined,
+        replacedPartsQty: replacedPartsQty === '' ? undefined : Number(replacedPartsQty),
+        technician: technician.trim(),
+      }),
+    })
+      .then((r) => {
+        if (!r.ok) throw new Error('Gagal menutup permintaan perbaikan')
+        return r.json()
+      })
+      .then(() => {
+        fetchWo()
+        onSuccess()
+      })
+      .catch(() => setCloseError('Gagal menutup permintaan perbaikan.'))
+      .finally(() => setActionLoading(false))
+  }
+
   if (loading) {
     return (
       <div className="modal-overlay" role="dialog" aria-modal="true" onClick={(e) => e.target === e.currentTarget && onClose()}>
         <div className="modal-content">
           <div className="modal-header">
-            <h2 id="view-wo-title">View / Edit Work Order</h2>
-            <button type="button" className="modal-close" onClick={onClose} aria-label="Close">×</button>
+            <h2 id="view-pp-title">Lihat / Edit Permintaan perbaikan</h2>
+            <button type="button" className="modal-close" onClick={onClose} aria-label="Tutup">×</button>
           </div>
           <p style={{ padding: '2rem', textAlign: 'center', color: '#64748b' }}>Loading...</p>
         </div>
@@ -258,10 +234,10 @@ export function ViewWorkOrderModal({ workOrderId, onClose, onSuccess }: ViewWork
       <div className="modal-overlay" role="dialog" aria-modal="true" onClick={(e) => e.target === e.currentTarget && onClose()}>
         <div className="modal-content">
           <div className="modal-header">
-            <h2 id="view-wo-title">View / Edit Work Order</h2>
-            <button type="button" className="modal-close" onClick={onClose} aria-label="Close">×</button>
+            <h2 id="view-pp-title">Lihat / Edit Permintaan perbaikan</h2>
+            <button type="button" className="modal-close" onClick={onClose} aria-label="Tutup">×</button>
           </div>
-          <p style={{ padding: '2rem', color: '#ef4444' }}>{error || 'Work order not found.'}</p>
+          <p style={{ padding: '2rem', color: '#ef4444' }}>{error || 'Permintaan perbaikan tidak ditemukan.'}</p>
         </div>
       </div>
     )
@@ -276,29 +252,29 @@ export function ViewWorkOrderModal({ workOrderId, onClose, onSuccess }: ViewWork
       className="modal-overlay"
       role="dialog"
       aria-modal="true"
-      aria-labelledby="view-wo-title"
+      aria-labelledby="view-pp-title"
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
       <div className="modal-content" style={{ maxWidth: 600 }}>
         <div className="modal-header">
-          <h2 id="view-wo-title">View / Edit Work Order — {wo.woId}</h2>
-          <button type="button" className="modal-close" onClick={onClose} aria-label="Close">×</button>
+          <h2 id="view-pp-title">Lihat / Edit Permintaan perbaikan — {wo.woId}</h2>
+          <button type="button" className="modal-close" onClick={onClose} aria-label="Tutup">×</button>
         </div>
 
         <div style={{ padding: '1.25rem' }}>
           <section className="wo-detail-section">
-            <h3 className="wo-detail-section-title">Informasi Work Order</h3>
+            <h3 className="wo-detail-section-title">Informasi Permintaan perbaikan</h3>
             <div className="wo-detail-grid">
               <div className="wo-detail-row">
-                <span className="wo-detail-label">Work Order No.</span>
+                <span className="wo-detail-label">No. Registrasi (Req)</span>
                 <span className="wo-detail-value">{wo.woId}</span>
               </div>
               <div className="wo-detail-row">
-                <span className="wo-detail-label">Time</span>
+                <span className="wo-detail-label">Waktu</span>
                 <span className="wo-detail-value muted">{formatDateTime(wo.createdAt)}</span>
               </div>
               <div className="wo-detail-row">
-                <span className="wo-detail-label">Current Status</span>
+                <span className="wo-detail-label">Status Saat Ini</span>
                 <span className="wo-detail-value">
                   <span className={`badge ${statusClass[wo.status] ?? 'badge-open'}`}>{wo.status}</span>
                 </span>
@@ -322,11 +298,11 @@ export function ViewWorkOrderModal({ workOrderId, onClose, onSuccess }: ViewWork
             <h3 className="wo-detail-section-title">Mesin & Lokasi</h3>
             <div className="wo-detail-grid">
               <div className="wo-detail-row">
-                <span className="wo-detail-label">Machine Name</span>
+                <span className="wo-detail-label">Nama Mesin</span>
                 <span className="wo-detail-value">{wo.machineName}</span>
               </div>
               <div className="wo-detail-row">
-                <span className="wo-detail-label">Machine Brand</span>
+                <span className="wo-detail-label">Merk Mesin</span>
                 <span className="wo-detail-value muted">{wo.machineBrand || '—'}</span>
               </div>
               <div className="wo-detail-row">
@@ -334,7 +310,7 @@ export function ViewWorkOrderModal({ workOrderId, onClose, onSuccess }: ViewWork
                 <span className="wo-detail-value">{wo.section}</span>
               </div>
               <div className="wo-detail-row">
-                <span className="wo-detail-label">Machine Status</span>
+                <span className="wo-detail-label">Status Mesin</span>
                 <span className="wo-detail-value muted">{wo.machineStatus || '—'}</span>
               </div>
             </div>
@@ -343,7 +319,7 @@ export function ViewWorkOrderModal({ workOrderId, onClose, onSuccess }: ViewWork
           <section className="wo-detail-section">
             <h3 className="wo-detail-section-title">Deskripsi Kerusakan</h3>
             <div className="wo-detail-row full-width">
-              <span className="wo-detail-label">Damage Description</span>
+              <span className="wo-detail-label">Deskripsi Kerusakan</span>
               <p className="wo-detail-value muted" style={{ margin: 0, whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>
                 {wo.damageType || '—'}
               </p>
@@ -353,9 +329,6 @@ export function ViewWorkOrderModal({ workOrderId, onClose, onSuccess }: ViewWork
           {!isCompleted && (
             <section className="wo-detail-section" style={{ marginTop: 0 }}>
               <h3 className="wo-detail-section-title">Ubah Status (Tim Maintenance)</h3>
-              <p style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '0.75rem' }}>
-              {/* Pilih status baru: <strong>Open</strong>, <strong>In Progress</strong>, <strong>PM</strong> (jadwalkan preventive maintenance), atau <strong>Pending</strong> */}
-              </p>
               <div className="form-group">
                 <label className="label" htmlFor="newStatus">Status baru</label>
                 <select
@@ -406,7 +379,7 @@ export function ViewWorkOrderModal({ workOrderId, onClose, onSuccess }: ViewWork
                     />
                   </div>
                   <p style={{ fontSize: '0.8rem', color: '#64748b', marginBottom: '0.5rem' }}>
-                    WO akan masuk ke jadwal Preventive Maintenance dengan tanggal di atas.
+                    Permintaan perbaikan akan masuk ke jadwal Preventive Maintenance dengan tanggal di atas.
                   </p>
                   <button type="submit" className="btn btn-primary" disabled={actionLoading}>
                     {actionLoading ? 'Menyimpan...' : 'Jadwalkan PM'}
@@ -424,7 +397,7 @@ export function ViewWorkOrderModal({ workOrderId, onClose, onSuccess }: ViewWork
                       value={pendingReason}
                       onChange={(e) => setPendingReason(e.target.value)}
                       rows={3}
-                      placeholder="Jelaskan alasan WO ditunda (misal: menunggu spare part, menunggu approval, dll.)"
+                      placeholder="Jelaskan alasan permintaan perbaikan ditunda (misal: menunggu spare part, menunggu approval, dll.)"
                     />
                   </div>
                   <button type="submit" className="btn btn-primary" disabled={actionLoading}>
@@ -443,15 +416,15 @@ export function ViewWorkOrderModal({ workOrderId, onClose, onSuccess }: ViewWork
 
           {(canMarkInProgress || canClose) && (
             <div className="modal-info" style={{ marginBottom: '1rem' }}>
-              <strong>Close WO:</strong> Jika status In Progress, isi form penutupan di bawah (Penyebab kerusakan, Tindakan perbaikan, Jenis tindakan, Teknisi). Total downtime dihitung otomatis.
+              <strong>Tutup permintaan perbaikan:</strong> Jika status In Progress, isi form penutupan di bawah (Penyebab kerusakan, Tindakan perbaikan, Jenis tindakan, Teknisi). Total downtime dihitung otomatis.
             </div>
           )}
 
           {canClose && (
             <form onSubmit={handleCloseWo} style={{ marginTop: '1.25rem', paddingTop: '1rem', borderTop: '1px solid #e2e8f0' }}>
-              <h3 style={{ margin: '0 0 1rem', fontSize: '1rem' }}>Form Penutupan WO — Tim Maintenance</h3>
+              <h3 style={{ margin: '0 0 1rem', fontSize: '1rem' }}>Form Penutupan — Tim Maintenance</h3>
               <p style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '1rem' }}>
-                Isi detail penutupan. Total downtime dihitung otomatis dari In Progress hingga Submit/Close.
+                Isi detail penutupan. Total downtime dihitung otomatis dari In Progress hingga Submit/Tutup.
               </p>
               <div className="form-group">
                 <label className="label" htmlFor="cause">Penyebab kerusakan *</label>
@@ -541,7 +514,7 @@ export function ViewWorkOrderModal({ workOrderId, onClose, onSuccess }: ViewWork
                   {liveDowntime != null ? `${liveDowntime} jam` : '—'}
                 </p>
                 <p style={{ margin: '0.25rem 0 0', fontSize: '0.8rem', color: '#64748b' }}>
-                  Dihitung otomatis dari In Progress ({formatDateTime(wo.startedAt)}) hingga Submit. Akan final setelah WO ditutup.
+                  Dihitung otomatis dari In Progress ({formatDateTime(wo.startedAt)}) hingga Submit. Akan final setelah permintaan perbaikan ditutup.
                 </p>
               </div>
               {closeError && (
@@ -551,7 +524,7 @@ export function ViewWorkOrderModal({ workOrderId, onClose, onSuccess }: ViewWork
               )}
               <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1rem' }}>
                 <button type="submit" className="btn btn-primary" disabled={actionLoading}>
-                  {actionLoading ? 'Menyimpan...' : 'Tutup Work Order'}
+                  {actionLoading ? 'Menyimpan...' : 'Tutup Permintaan perbaikan'}
                 </button>
                 <button type="button" className="btn btn-secondary" onClick={onClose}>Batal</button>
               </div>

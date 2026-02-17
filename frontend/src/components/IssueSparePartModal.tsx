@@ -149,7 +149,7 @@ export function IssueSparePartModal({ part, onClose, onSuccess }: IssueSparePart
               type="text"
               value={reason}
               onChange={(e) => setReason(e.target.value)}
-              placeholder="e.g. Untuk WO-1042, perbaikan Motor Listrik"
+              placeholder="e.g. Untuk Req1042, perbaikan Motor Listrik"
             />
           </div>
 
