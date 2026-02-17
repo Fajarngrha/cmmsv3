@@ -97,15 +97,20 @@ purchaseOrdersRouter.post('/purchase-orders', async (req, res) => {
   const status = body.status && STATUS_OPTIONS.includes(body.status) ? body.status : 'Tahap 1'
   const maxRetries = 5
   const retryDelayMs = 250
+  const now = new Date()
+  const mm = String(now.getMonth() + 1).padStart(2, '0')
+  const yy = String(now.getFullYear()).slice(-2)
+  const prefix = `MTC/SPB/${mm}/${yy}/`
+  // Advisory lock key (bigint) dari prefix agar hanya satu transaksi yang generate nomor per bulan/tahun
+  const advisoryKey = Math.abs(
+    prefix.split('').reduce((h, c) => ((h << 5) - h + c.charCodeAt(0)) | 0, 0)
+  ) || 1
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     const client = await getPool().connect()
     try {
       await client.query('BEGIN')
+      await client.query('SELECT pg_advisory_xact_lock($1)', [advisoryKey])
       await client.query('LOCK TABLE purchase_orders IN EXCLUSIVE MODE')
-      const now = new Date()
-      const mm = String(now.getMonth() + 1).padStart(2, '0')
-      const yy = String(now.getFullYear()).slice(-2)
-      const prefix = `MTC/SPB/${mm}/${yy}/`
       const sel = await client.query<{ no_registrasi: string }>(
         `SELECT no_registrasi FROM purchase_orders WHERE no_registrasi LIKE $1 ORDER BY no_registrasi DESC LIMIT 1`,
         [`${prefix}%`]
