@@ -1,8 +1,13 @@
-import 'dotenv/config'
-import express from 'express'
-import cors from 'cors'
+import dotenv from 'dotenv'
 import path from 'path'
 import { fileURLToPath } from 'url'
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
+// Load .env dari folder backend (bukan cwd) agar jalan benar saat dijalankan PM2
+dotenv.config({ path: path.join(__dirname, '..', '.env') })
+
+import express from 'express'
+import cors from 'cors'
 import fs from 'fs'
 import { dashboardRouter } from './routes/dashboard.js'
 import { permintaanPerbaikanRouter } from './routes/permintaanPerbaikan.js'
@@ -10,8 +15,6 @@ import { assetsRouter } from './routes/assets.js'
 import { inventoryRouter } from './routes/inventory.js'
 import { purchaseOrdersRouter } from './routes/purchaseOrders.js'
 import { query } from './db/index.js'
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 const app = express()
 const PORT = Number(process.env.PORT) || 3001
