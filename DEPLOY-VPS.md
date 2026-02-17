@@ -2,6 +2,8 @@
 
 Panduan ini untuk menjalankan CMMS di VPS (Ubuntu/Debian): backend Node.js + PostgreSQL, frontend dilayani dari backend (satu aplikasi, satu port).
 
+**Setelah VPS sudah jalan dan ada perubahan kode:** gunakan **[DEPLOY-ULANG.md](DEPLOY-ULANG.md)** untuk panduan update/deploy ulang.
+
 ---
 
 ## 1. Persyaratan VPS

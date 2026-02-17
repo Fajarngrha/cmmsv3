@@ -79,6 +79,7 @@ interface PurchaseOrder {
   id: string
   tanggal: string
   totalHarga: number
+  mesin?: string
 }
 
 interface Asset {
@@ -124,11 +125,22 @@ export function Dashboard() {
     })
   }, [permintaanPerbaikan, period, section])
 
-  /** Filter PO menurut Period (tanggal) */
+  /** Filter PO menurut Period (tanggal) dan Section (mesin sesuai asset section) */
   const filteredPO = useMemo(() => {
-    if (period === 'all') return purchaseOrders
-    return purchaseOrders.filter((po) => po.tanggal.startsWith(period))
-  }, [purchaseOrders, period])
+    let list = purchaseOrders
+    if (period !== 'all') {
+      list = list.filter((po) => {
+        const dateStr = typeof po.tanggal === 'string' ? po.tanggal : ''
+        const yearMonth = dateStr.slice(0, 7)
+        return yearMonth === period || dateStr.startsWith(period)
+      })
+    }
+    if (section !== 'all') {
+      const sectionAssetNames = new Set(assets.filter((a) => a.section === section).map((a) => a.name))
+      list = list.filter((po) => !po.mesin || sectionAssetNames.has(po.mesin))
+    }
+    return list
+  }, [purchaseOrders, period, section, assets])
 
   /** Filter Upcoming PM menurut Section (asset section) */
   const filteredUpcomingPM = useMemo(() => {
@@ -262,7 +274,7 @@ export function Dashboard() {
         <KpiCard
           title="Maintenance Cost (Rp)"
           value={`Rp. ${new Intl.NumberFormat('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(maintenanceCostIdr)}`}
-          sub={period !== 'all' || section !== 'all' ? '' : ''}
+          sub={period !== 'all' || section !== 'all' ? 'Sesuai filter Period / Section' : ''}
           color="blue"
           icon="💰"
         />

@@ -1,0 +1,224 @@
+{
+  "info": {
+    "name": "CMMS API",
+    "description": "Koleksi test API CMMS (Permintaan Perbaikan, Assets, Inventory, PO, Dashboard)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3001/api" },
+    { "key": "permintaanId", "value": "1" },
+    { "key": "assetId", "value": "1" },
+    { "key": "sparePartId", "value": "1" },
+    { "key": "poId", "value": "1" },
+    { "key": "upcomingPmId", "value": "1" }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/health"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Permintaan Perbaikan",
+      "item": [
+        {
+          "name": "List Permintaan Perbaikan",
+          "request": { "method": "GET", "header": [], "url": "{{baseUrl}}/permintaan-perbaikan" }
+        },
+        {
+          "name": "Get Permintaan By ID",
+          "request": { "method": "GET", "header": [], "url": "{{baseUrl}}/permintaan-perbaikan/{{permintaanId}}" }
+        },
+        {
+          "name": "Create Permintaan Perbaikan",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"machineName\": \"Mesin CNC 01\",\n  \"machineBrand\": \"Fanuc\",\n  \"section\": \"Die Casting\",\n  \"machineStatus\": \"Running\",\n  \"damageDescription\": \"Sensor error\",\n  \"reportedBy\": \"Tim Produksi\"\n}"
+            },
+            "url": "{{baseUrl}}/permintaan-perbaikan"
+          }
+        },
+        {
+          "name": "Update Permintaan - In Progress",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"status\": \"In Progress\"\n}" },
+            "url": "{{baseUrl}}/permintaan-perbaikan/{{permintaanId}}"
+          }
+        },
+        {
+          "name": "Update Permintaan - Completed",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"Completed\",\n  \"causeOfDamage\": \"Sensor rusak\",\n  \"repairsPerformed\": \"Ganti sensor\",\n  \"actionType\": \"Replacement\",\n  \"technician\": \"Budi\"\n}"
+            },
+            "url": "{{baseUrl}}/permintaan-perbaikan/{{permintaanId}}"
+          }
+        },
+        {
+          "name": "Delete Permintaan Perbaikan",
+          "request": { "method": "DELETE", "header": [], "url": "{{baseUrl}}/permintaan-perbaikan/{{permintaanId}}" }
+        }
+      ]
+    },
+    {
+      "name": "Assets",
+      "item": [
+        { "name": "List Assets", "request": { "method": "GET", "header": [], "url": "{{baseUrl}}/assets" } },
+        {
+          "name": "Create Asset",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Mesin Injection 01\",\n  \"section\": \"Line 1\",\n  \"health\": \"Running\",\n  \"installedAt\": \"2024-06-01\"\n}"
+            },
+            "url": "{{baseUrl}}/assets"
+          }
+        },
+        {
+          "name": "Import Assets",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"assets\": [\n    { \"name\": \"Asset A\", \"section\": \"Line 1\" },\n    { \"name\": \"Asset B\", \"section\": \"Line 2\" }\n  ]\n}"
+            },
+            "url": "{{baseUrl}}/assets/import"
+          }
+        },
+        { "name": "Delete Asset", "request": { "method": "DELETE", "header": [], "url": "{{baseUrl}}/assets/{{assetId}}" } }
+      ]
+    },
+    {
+      "name": "Inventory (Spare Parts)",
+      "item": [
+        { "name": "List Spare Parts", "request": { "method": "GET", "header": [], "url": "{{baseUrl}}/inventory/spare-parts" } },
+        {
+          "name": "Create Spare Part",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Bearing 6205\",\n  \"category\": \"Bearing\",\n  \"stock\": 10,\n  \"minStock\": 2,\n  \"unit\": \"pcs\",\n  \"location\": \"Gudang A\"\n}"
+            },
+            "url": "{{baseUrl}}/inventory/spare-parts"
+          }
+        },
+        {
+          "name": "Import Spare Parts",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"parts\": [\n    { \"name\": \"Bearing A\", \"category\": \"Bearing\", \"stock\": 5 },\n    { \"name\": \"Seal B\", \"category\": \"Seal\" }\n  ]\n}"
+            },
+            "url": "{{baseUrl}}/inventory/spare-parts/import"
+          }
+        },
+        { "name": "History (all)", "request": { "method": "GET", "header": [], "url": "{{baseUrl}}/inventory/spare-parts/history" } },
+        { "name": "History (in only)", "request": { "method": "GET", "header": [], "url": "{{baseUrl}}/inventory/spare-parts/history?type=in" } },
+        {
+          "name": "Issue (Keluar)",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"qty\": 2,\n  \"reason\": \"Perbaikan mesin\",\n  \"pic\": \"Budi\"\n}" },
+            "url": "{{baseUrl}}/inventory/spare-parts/{{sparePartId}}/issue"
+          }
+        },
+        {
+          "name": "Receive (Masuk)",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"qty\": 5,\n  \"reason\": \"Restock\",\n  \"pic\": \"Admin\"\n}" },
+            "url": "{{baseUrl}}/inventory/spare-parts/{{sparePartId}}/receive"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Purchase Orders",
+      "item": [
+        { "name": "List PO", "request": { "method": "GET", "header": [], "url": "{{baseUrl}}/purchase-orders" } },
+        { "name": "Get PO By ID", "request": { "method": "GET", "header": [], "url": "{{baseUrl}}/purchase-orders/{{poId}}" } },
+        {
+          "name": "Create PO",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tanggal\": \"2026-02-17\",\n  \"itemDeskripsi\": \"Bearing 6205\",\n  \"hargaPerUnit\": 50000,\n  \"qty\": 4,\n  \"supplier\": \"PT Sumber Bearing\",\n  \"kategori\": \"Sparepart\"\n}"
+            },
+            "url": "{{baseUrl}}/purchase-orders"
+          }
+        },
+        {
+          "name": "Update PO",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"status\": \"Tahap 2\",\n  \"noPO\": \"PO/2026/001\"\n}" },
+            "url": "{{baseUrl}}/purchase-orders/{{poId}}"
+          }
+        },
+        { "name": "Delete PO", "request": { "method": "DELETE", "header": [], "url": "{{baseUrl}}/purchase-orders/{{poId}}" } }
+      ]
+    },
+    {
+      "name": "Dashboard",
+      "item": [
+        { "name": "KPIs", "request": { "method": "GET", "header": [], "url": "{{baseUrl}}/dashboard/kpis" } },
+        { "name": "Trend", "request": { "method": "GET", "header": [], "url": "{{baseUrl}}/dashboard/trend" } },
+        { "name": "Pareto", "request": { "method": "GET", "header": [], "url": "{{baseUrl}}/dashboard/pareto" } },
+        { "name": "Upcoming PM", "request": { "method": "GET", "header": [], "url": "{{baseUrl}}/dashboard/upcoming-pm" } },
+        {
+          "name": "Update Upcoming PM",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"keteranganStatus\": \"PM OK\",\n  \"keteranganNotes\": \"Selesai\"\n}" },
+            "url": "{{baseUrl}}/dashboard/upcoming-pm/{{upcomingPmId}}"
+          }
+        },
+        { "name": "Delete Upcoming PM", "request": { "method": "DELETE", "header": [], "url": "{{baseUrl}}/dashboard/upcoming-pm/{{upcomingPmId}}" } },
+        {
+          "name": "Create PM Schedule",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"assetName\": \"Mesin CNC 01\",\n  \"activity\": \"Ganti oli dan filter\",\n  \"scheduledDate\": \"2026-03-01\",\n  \"assignedTo\": \"Budi\"\n}"
+            },
+            "url": "{{baseUrl}}/dashboard/pm-schedule"
+          }
+        },
+        { "name": "Quick Stats", "request": { "method": "GET", "header": [], "url": "{{baseUrl}}/dashboard/quick-stats" } },
+        { "name": "WO Status", "request": { "method": "GET", "header": [], "url": "{{baseUrl}}/dashboard/wo-status" } },
+        { "name": "Asset Health", "request": { "method": "GET", "header": [], "url": "{{baseUrl}}/dashboard/asset-health" } }
+      ]
+    }
+  ]
+}
