@@ -14,7 +14,7 @@ import { permintaanPerbaikanRouter } from './routes/permintaanPerbaikan.js'
 import { assetsRouter } from './routes/assets.js'
 import { inventoryRouter } from './routes/inventory.js'
 import { purchaseOrdersRouter } from './routes/purchaseOrders.js'
-import { query } from './db/index.js'
+import { query, getConnectionInfo } from './db/index.js'
 
 const app = express()
 const PORT = Number(process.env.PORT) || 3001
@@ -41,7 +41,7 @@ if (fs.existsSync(staticDir)) {
 async function start() {
   try {
     await query('SELECT 1')
-    console.log('Database: connected')
+    console.log('Database: connected as', getConnectionInfo())
   } catch (e) {
     console.error('Database connection failed. Set DATABASE_URL or DB_* env vars and ensure PostgreSQL is running.')
     console.error(e)
