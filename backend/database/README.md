@@ -14,6 +14,7 @@
 | **PostgreSQL** | |
 | `schema-postgres.sql` | DDL: buat semua tabel + ENUM + trigger di PostgreSQL |
 | `seed-postgres.sql` | Data awal (assets, WO, spare parts, PO, PM) |
+| `migration-po-no-registrasi-seq.sql` | Migration: tabel counter no_registrasi PO (menghilangkan duplicate key) |
 | `grant-permissions-cmms_dbv3.sql` | Grant hak akses ke user cmms_userv3 (database cmms_dbv3) |
 | **MySQL** | |
 | `schema.sql` | DDL: buat database dan semua tabel |
@@ -67,6 +68,17 @@ sudo -u postgres psql -d cmms_dbv3 -v ON_ERROR_STOP=1 -f backend/database/grant-
 ```bash
 psql -d cmms_dbv3 -f backend/database/seed-postgres.sql
 ```
+
+### 5. Jika error duplicate no_registrasi (purchase_orders) saat buat PO baru
+
+Jalankan migration sekali (untuk DB yang sudah jalan tanpa tabel counter):
+
+```bash
+sudo -u postgres psql -d cmms_dbv3 -f backend/database/migration-po-no-registrasi-seq.sql
+sudo -u postgres psql -d cmms_dbv3 -v ON_ERROR_STOP=1 -f backend/database/grant-permissions-cmms_dbv3.sql
+```
+
+Lalu restart backend (mis. `pm2 restart cmms-apiv3`).
 
 ### Jika database sudah ada (hanya tambah kolom)
 

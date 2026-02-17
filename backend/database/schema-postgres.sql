@@ -182,6 +182,14 @@ CREATE INDEX idx_purchase_orders_tanggal ON purchase_orders (tanggal);
 CREATE INDEX idx_purchase_orders_status ON purchase_orders (status);
 
 COMMENT ON COLUMN purchase_orders.no_registrasi IS 'MTC/SPB/MM/YY/XXXX';
+
+-- Counter untuk no_registrasi per prefix (MTC/SPB/MM/YY/) — menghindari duplicate saat concurrent insert
+CREATE TABLE IF NOT EXISTS po_no_registrasi_seq (
+  prefix VARCHAR(20) PRIMARY KEY,
+  next_val INTEGER NOT NULL DEFAULT 1
+);
+COMMENT ON TABLE po_no_registrasi_seq IS 'Nomor urut no_registrasi per prefix bulan/tahun';
+
 -- Jika enum po_status sudah ada (hanya 5 tahap), tambah Tahap 6 & 7:
 -- ALTER TYPE po_status ADD VALUE 'Tahap 6';
 -- ALTER TYPE po_status ADD VALUE 'Tahap 7';

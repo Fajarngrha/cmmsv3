@@ -148,6 +148,12 @@ Perhatian: skema penuh biasanya berisi `DROP TABLE`; hanya jalankan jika memang 
 
 **Jika ada skrip migration terpisah**, jalankan skrip itu ke `cmms_dbv3`.
 
+Contoh: untuk perbaikan error duplicate `no_registrasi` pada Purchase Orders (tabel counter):
+
+```bash
+sudo -u postgres psql -d cmms_dbv3 -f /var/cmmsv3/backend/database/migration-po-no-registrasi-seq.sql
+```
+
 ### 4.3 Grant ulang (setelah perubahan struktur)
 
 ```bash
@@ -209,6 +215,7 @@ Pastikan ada:
 - **PM2 masih pakai kode lama:** pastikan `npm run build` di folder `backend` di VPS, lalu `pm2 restart cmms-apiv3`.
 - **Error 28P01 (password):** cek `.env` di VPS (DATABASE_URL / DB_*) dan pastikan sama dengan user `cmms_userv3` di PostgreSQL.
 - **Error 42501 (permission denied):** jalankan lagi `grant-permissions-cmms_dbv3.sql` ke database `cmms_dbv3`, lalu restart PM2.
+- **Error duplicate no_registrasi (purchase_orders):** jalankan sekali migration `backend/database/migration-po-no-registrasi-seq.sql` ke `cmms_dbv3`, lalu grant ulang dan restart PM2.
 - **Frontend tidak berubah:** pastikan `frontend/dist/` di VPS sudah di-overwrite dengan hasil build terbaru (dari git pull atau upload/rsync).
 
 Dengan mengikuti panduan ini, setiap ada perubahan kode Anda bisa deploy ulang dengan konsisten dan mudah dicek.

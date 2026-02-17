@@ -101,26 +101,17 @@ purchaseOrdersRouter.post('/purchase-orders', async (req, res) => {
   const mm = String(now.getMonth() + 1).padStart(2, '0')
   const yy = String(now.getFullYear()).slice(-2)
   const prefix = `MTC/SPB/${mm}/${yy}/`
-  // Advisory lock key (bigint) dari prefix agar hanya satu transaksi yang generate nomor per bulan/tahun
-  const advisoryKey = Math.abs(
-    prefix.split('').reduce((h, c) => ((h << 5) - h + c.charCodeAt(0)) | 0, 0)
-  ) || 1
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     const client = await getPool().connect()
     try {
       await client.query('BEGIN')
-      await client.query('SELECT pg_advisory_xact_lock($1)', [advisoryKey])
-      await client.query('LOCK TABLE purchase_orders IN EXCLUSIVE MODE')
-      const sel = await client.query<{ no_registrasi: string }>(
-        `SELECT no_registrasi FROM purchase_orders WHERE no_registrasi LIKE $1 ORDER BY no_registrasi DESC LIMIT 1`,
-        [`${prefix}%`]
+      const seqResult = await client.query<{ next_val: number }>(
+        `INSERT INTO po_no_registrasi_seq (prefix, next_val) VALUES ($1, 1)
+         ON CONFLICT (prefix) DO UPDATE SET next_val = po_no_registrasi_seq.next_val + 1
+         RETURNING next_val`,
+        [prefix]
       )
-      let maxNum = 0
-      if (sel.rows.length > 0) {
-        const n = parseInt(sel.rows[0].no_registrasi.slice(prefix.length), 10)
-        if (!Number.isNaN(n)) maxNum = n
-      }
-      const nextNum = maxNum + 1
+      const nextNum = seqResult.rows[0].next_val
       const noRegistrasi = `${prefix}${String(nextNum).padStart(4, '0')}`
       const result = await client.query(
         `INSERT INTO purchase_orders (tanggal, item_deskripsi, model, harga_per_unit, qty, no_registrasi, no_po, mesin, no_quotation, supplier, kategori, total_harga, status)

@@ -30,6 +30,7 @@ ALTER TABLE permintaan_perbaikan OWNER TO cmms_userv3;
 ALTER TABLE spare_parts OWNER TO cmms_userv3;
 ALTER TABLE spare_part_history OWNER TO cmms_userv3;
 ALTER TABLE purchase_orders OWNER TO cmms_userv3;
+ALTER TABLE po_no_registrasi_seq OWNER TO cmms_userv3;
 ALTER TABLE upcoming_pm OWNER TO cmms_userv3;
 
 ALTER SEQUENCE IF EXISTS assets_id_seq OWNER TO cmms_userv3;
