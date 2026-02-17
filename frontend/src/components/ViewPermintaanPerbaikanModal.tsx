@@ -514,7 +514,7 @@ export function ViewPermintaanPerbaikanModal({ permintaanPerbaikanId, onClose, o
                   {liveDowntime != null ? `${liveDowntime} jam` : '—'}
                 </p>
                 <p style={{ margin: '0.25rem 0 0', fontSize: '0.8rem', color: '#64748b' }}>
-                  Dihitung otomatis dari In Progress ({formatDateTime(wo.startedAt)}) hingga Submit. Akan final setelah permintaan perbaikan ditutup.
+                  Dihitung otomatis dari In Progress ({wo.startedAt ? formatDateTime(wo.startedAt) : '—'}) hingga Submit. Akan final setelah permintaan perbaikan ditutup.
                 </p>
               </div>
               {closeError && (

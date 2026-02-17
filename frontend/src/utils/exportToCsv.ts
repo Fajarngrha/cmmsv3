@@ -24,8 +24,9 @@ export function buildCsvContent<T>(rows: T[], columns: CsvColumn<T>[]): string {
   const dataRows = rows.map((row) =>
     columns
       .map((col) => {
-        const val = col.getValue ? col.getValue(row) : (col.key ? (row as Record<string, unknown>)[col.key as string] : '')
-        return escapeCsvCell(val ?? '')
+        const raw = col.getValue ? col.getValue(row) : (col.key ? (row as Record<string, unknown>)[col.key as string] : '')
+        const val = raw !== null && raw !== undefined && (typeof raw === 'string' || typeof raw === 'number') ? raw : String(raw ?? '')
+        return escapeCsvCell(val)
       })
       .join(',')
   )
