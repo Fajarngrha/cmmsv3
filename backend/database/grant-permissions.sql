@@ -27,3 +27,10 @@ ALTER TABLE spare_parts OWNER TO cmms_userv2;
 ALTER TABLE spare_part_history OWNER TO cmms_userv2;
 ALTER TABLE purchase_orders OWNER TO cmms_userv2;
 ALTER TABLE upcoming_pm OWNER TO cmms_userv2;
+
+-- Hak pakai tipe ENUM (tanpa ini bisa tetap 42501 saat akses tabel)
+GRANT USAGE ON TYPE asset_health TO cmms_userv2;
+GRANT USAGE ON TYPE wo_status TO cmms_userv2;
+GRANT USAGE ON TYPE wo_type TO cmms_userv2;
+GRANT USAGE ON TYPE po_kategori TO cmms_userv2;
+GRANT USAGE ON TYPE po_status TO cmms_userv2;
