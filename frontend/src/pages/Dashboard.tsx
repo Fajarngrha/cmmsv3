@@ -364,7 +364,7 @@ export function Dashboard() {
                     nameKey="name"
                     label={({ name, value }) => `${name} ${value}%`}
                   >
-                    {pieData.map((entry, i) => (
+                    {pieData.map((entry) => (
                       <Cell key={entry.name} fill={entry.color} />
                     ))}
                   </Pie>

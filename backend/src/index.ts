@@ -42,12 +42,9 @@ async function start() {
   try {
     await query('SELECT 1')
     console.log('Database: connected as', getConnectionInfo())
-  } catch (e: unknown) {
-    const err = e as { message?: string; code?: string }
+  } catch (e) {
     console.error('Database connection failed. Set DATABASE_URL or DB_* env vars and ensure PostgreSQL is running.')
-    console.error('Error code:', err?.code ?? 'unknown')
-    console.error('Error message:', err?.message ?? String(e))
-    if (err?.code) console.error('(PostgreSQL code', err.code, err.code === '42501' ? '= permission denied — jalankan grant-permissions-cmms_dbv3.sql)' : ')')
+    console.error(e)
     process.exit(1)
   }
   app.listen(PORT, HOST, () => {
@@ -60,13 +57,5 @@ async function start() {
     }
   })
 }
-
-process.on('uncaughtException', (e) => {
-  console.error('Uncaught exception:', (e as Error).message)
-  console.error((e as Error).stack)
-})
-process.on('unhandledRejection', (reason) => {
-  console.error('Unhandled rejection:', reason)
-})
 
 start()
