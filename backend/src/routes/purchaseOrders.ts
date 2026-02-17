@@ -95,12 +95,8 @@ purchaseOrdersRouter.post('/purchase-orders', async (req, res) => {
   const kategoriOptions: POKategori[] = ['Preventive', 'Sparepart', 'Breakdown/Repair']
   const kategori = body.kategori && kategoriOptions.includes(body.kategori) ? body.kategori : 'Sparepart'
   const status = body.status && STATUS_OPTIONS.includes(body.status) ? body.status : 'Tahap 1'
-<<<<<<< HEAD
   const maxRetries = 5
   const retryDelayMs = 250
-=======
-  const maxRetries = 2
->>>>>>> af77f12ffd965c1a96b114c72800c9e4140fe487
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     const client = await getPool().connect()
     try {
@@ -111,7 +107,6 @@ purchaseOrdersRouter.post('/purchase-orders', async (req, res) => {
       const yy = String(now.getFullYear()).slice(-2)
       const prefix = `MTC/SPB/${mm}/${yy}/`
       const sel = await client.query<{ no_registrasi: string }>(
-<<<<<<< HEAD
         `SELECT no_registrasi FROM purchase_orders WHERE no_registrasi LIKE $1 ORDER BY no_registrasi DESC LIMIT 1`,
         [`${prefix}%`]
       )
@@ -119,15 +114,6 @@ purchaseOrdersRouter.post('/purchase-orders', async (req, res) => {
       if (sel.rows.length > 0) {
         const n = parseInt(sel.rows[0].no_registrasi.slice(prefix.length), 10)
         if (!Number.isNaN(n)) maxNum = n
-=======
-        `SELECT no_registrasi FROM purchase_orders WHERE no_registrasi LIKE $1`,
-        [`${prefix}%`]
-      )
-      let maxNum = 0
-      for (const row of sel.rows) {
-        const n = parseInt(row.no_registrasi.slice(prefix.length), 10)
-        if (!Number.isNaN(n) && n > maxNum) maxNum = n
->>>>>>> af77f12ffd965c1a96b114c72800c9e4140fe487
       }
       const nextNum = maxNum + 1
       const noRegistrasi = `${prefix}${String(nextNum).padStart(4, '0')}`
@@ -159,11 +145,7 @@ purchaseOrdersRouter.post('/purchase-orders', async (req, res) => {
       client.release()
       const code = (err as { code?: string })?.code
       if (code === '23505' && attempt < maxRetries) {
-<<<<<<< HEAD
         await new Promise((r) => setTimeout(r, retryDelayMs))
-=======
-        await new Promise((r) => setTimeout(r, 150))
->>>>>>> af77f12ffd965c1a96b114c72800c9e4140fe487
         continue
       }
       if (code === '23505') {

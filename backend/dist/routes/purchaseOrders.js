@@ -1,22 +1,8 @@
 import { Router } from 'express';
-import { query } from '../db/index.js';
+import { query, getPool } from '../db/index.js';
 import { rowToPurchaseOrder } from '../db/mappers.js';
 export const purchaseOrdersRouter = Router();
 const STATUS_OPTIONS = ['Tahap 1', 'Tahap 2', 'Tahap 3', 'Tahap 4', 'Tahap 5', 'Tahap 6', 'Tahap 7'];
-async function nextNoRegistrasi() {
-    const now = new Date();
-    const mm = String(now.getMonth() + 1).padStart(2, '0');
-    const yy = String(now.getFullYear()).slice(-2);
-    const prefix = `MTC/SPB/${mm}/${yy}/`;
-    const result = await query(`SELECT no_registrasi FROM purchase_orders WHERE no_registrasi LIKE $1 ORDER BY no_registrasi DESC LIMIT 1`, [`${prefix}%`]);
-    let nextNum = 1;
-    if (result.rows.length > 0) {
-        const last = result.rows[0].no_registrasi;
-        const numPart = last.slice(prefix.length);
-        nextNum = (parseInt(numPart, 10) || 0) + 1;
-    }
-    return `${prefix}${String(nextNum).padStart(4, '0')}`;
-}
 purchaseOrdersRouter.get('/purchase-orders', async (_, res) => {
     try {
         const result = await query(`SELECT id, tanggal, item_deskripsi, model, harga_per_unit, qty, no_registrasi, no_po, mesin, no_quotation, supplier, kategori, total_harga, status FROM purchase_orders ORDER BY id DESC`);
@@ -87,31 +73,67 @@ purchaseOrdersRouter.post('/purchase-orders', async (req, res) => {
     const kategoriOptions = ['Preventive', 'Sparepart', 'Breakdown/Repair'];
     const kategori = body.kategori && kategoriOptions.includes(body.kategori) ? body.kategori : 'Sparepart';
     const status = body.status && STATUS_OPTIONS.includes(body.status) ? body.status : 'Tahap 1';
-    try {
-        const noRegistrasi = await nextNoRegistrasi();
-        const result = await query(`INSERT INTO purchase_orders (tanggal, item_deskripsi, model, harga_per_unit, qty, no_registrasi, no_po, mesin, no_quotation, supplier, kategori, total_harga, status)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
-       RETURNING id, tanggal, item_deskripsi, model, harga_per_unit, qty, no_registrasi, no_po, mesin, no_quotation, supplier, kategori, total_harga, status`, [
-            body.tanggal.trim(),
-            body.itemDeskripsi.trim(),
-            (body.model ?? '').trim() || null,
-            hargaPerUnit,
-            qty,
-            noRegistrasi,
-            (body.noPO ?? '').trim() || null,
-            (body.mesin ?? '').trim() || null,
-            (body.noQuotation ?? '').trim() || null,
-            (body.supplier ?? '').trim() || null,
-            kategori,
-            totalHarga,
-            status,
-        ]);
-        res.status(201).json(rowToPurchaseOrder(result.rows[0]));
+    const maxRetries = 5;
+    const retryDelayMs = 250;
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        const client = await getPool().connect();
+        try {
+            await client.query('BEGIN');
+            await client.query('LOCK TABLE purchase_orders IN EXCLUSIVE MODE');
+            const now = new Date();
+            const mm = String(now.getMonth() + 1).padStart(2, '0');
+            const yy = String(now.getFullYear()).slice(-2);
+            const prefix = `MTC/SPB/${mm}/${yy}/`;
+            const sel = await client.query(`SELECT no_registrasi FROM purchase_orders WHERE no_registrasi LIKE $1 ORDER BY no_registrasi DESC LIMIT 1`, [`${prefix}%`]);
+            let maxNum = 0;
+            if (sel.rows.length > 0) {
+                const n = parseInt(sel.rows[0].no_registrasi.slice(prefix.length), 10);
+                if (!Number.isNaN(n))
+                    maxNum = n;
+            }
+            const nextNum = maxNum + 1;
+            const noRegistrasi = `${prefix}${String(nextNum).padStart(4, '0')}`;
+            const result = await client.query(`INSERT INTO purchase_orders (tanggal, item_deskripsi, model, harga_per_unit, qty, no_registrasi, no_po, mesin, no_quotation, supplier, kategori, total_harga, status)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+         RETURNING id, tanggal, item_deskripsi, model, harga_per_unit, qty, no_registrasi, no_po, mesin, no_quotation, supplier, kategori, total_harga, status`, [
+                body.tanggal.trim(),
+                body.itemDeskripsi.trim(),
+                (body.model ?? '').trim() || null,
+                hargaPerUnit,
+                qty,
+                noRegistrasi,
+                (body.noPO ?? '').trim() || null,
+                (body.mesin ?? '').trim() || null,
+                (body.noQuotation ?? '').trim() || null,
+                (body.supplier ?? '').trim() || null,
+                kategori,
+                totalHarga,
+                status,
+            ]);
+            await client.query('COMMIT');
+            client.release();
+            return res.status(201).json(rowToPurchaseOrder(result.rows[0]));
+        }
+        catch (err) {
+            await client.query('ROLLBACK').catch(() => { });
+            client.release();
+            const code = err?.code;
+            if (code === '23505' && attempt < maxRetries) {
+                await new Promise((r) => setTimeout(r, retryDelayMs));
+                continue;
+            }
+            if (code === '23505') {
+                console.error('POST /purchase-orders: duplicate no_registrasi after retries', err);
+                return res.status(409).json({
+                    error: 'Nomor registrasi bentrok. Silakan coba lagi.',
+                    code: 'DUPLICATE_NO_REGISTRASI',
+                });
+            }
+            console.error('POST /purchase-orders', err);
+            return res.status(500).json({ error: 'Gagal menambah PO.' });
+        }
     }
-    catch (err) {
-        console.error('POST /purchase-orders', err);
-        res.status(500).json({ error: 'Gagal menambah PO.' });
-    }
+    return res.status(500).json({ error: 'Gagal menambah PO setelah beberapa percobaan.' });
 });
 purchaseOrdersRouter.delete('/purchase-orders/:id', async (req, res) => {
     try {

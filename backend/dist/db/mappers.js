@@ -69,10 +69,22 @@ export function rowToSparePartMovement(row) {
         createdAt: row.created_at?.toISOString?.() ?? String(row.created_at),
     };
 }
+function toDateString(v) {
+    if (v instanceof Date) {
+        const y = v.getFullYear();
+        const m = String(v.getMonth() + 1).padStart(2, '0');
+        const d = String(v.getDate()).padStart(2, '0');
+        return `${y}-${m}-${d}`;
+    }
+    const s = String(v);
+    if (/^\d{4}-\d{2}-\d{2}/.test(s))
+        return s.slice(0, 10);
+    return s.slice(0, 10);
+}
 export function rowToPurchaseOrder(row) {
     return {
         id: String(row.id),
-        tanggal: String(row.tanggal).slice(0, 10),
+        tanggal: toDateString(row.tanggal),
         itemDeskripsi: row.item_deskripsi,
         model: row.model,
         hargaPerUnit: Number(row.harga_per_unit ?? 0),
