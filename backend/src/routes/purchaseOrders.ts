@@ -106,10 +106,25 @@ purchaseOrdersRouter.post('/purchase-orders', async (req, res) => {
     const client = await getPool().connect()
     try {
       await client.query('BEGIN')
+      // Sinkronkan counter dengan max no_registrasi yang sudah ada (next_val = terakhir dipakai)
+      await client.query(
+        `INSERT INTO po_no_registrasi_seq (prefix, next_val)
+         SELECT $1, COALESCE(
+           (SELECT MAX(CAST(substring(no_registrasi FROM 15) AS INTEGER)) FROM purchase_orders WHERE no_registrasi LIKE $2),
+           0
+         )
+         ON CONFLICT (prefix) DO UPDATE SET next_val = greatest(
+           po_no_registrasi_seq.next_val,
+           COALESCE(
+             (SELECT MAX(CAST(substring(no_registrasi FROM 15) AS INTEGER)) FROM purchase_orders WHERE no_registrasi LIKE $2),
+             0
+           )
+         )`,
+        [prefix, `${prefix}%`]
+      )
+      // Alokasi: increment dan ambil nomor yang dipakai
       const seqResult = await client.query<{ next_val: number }>(
-        `INSERT INTO po_no_registrasi_seq (prefix, next_val) VALUES ($1, 1)
-         ON CONFLICT (prefix) DO UPDATE SET next_val = po_no_registrasi_seq.next_val + 1
-         RETURNING next_val`,
+        `UPDATE po_no_registrasi_seq SET next_val = next_val + 1 WHERE prefix = $1 RETURNING next_val`,
         [prefix]
       )
       nextNum = seqResult.rows[0].next_val
