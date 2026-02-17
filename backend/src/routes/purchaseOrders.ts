@@ -12,12 +12,15 @@ async function nextNoRegistrasi(): Promise<string> {
   const mm = String(now.getMonth() + 1).padStart(2, '0')
   const yy = String(now.getFullYear()).slice(-2)
   const prefix = `MTC/SPB/${mm}/${yy}/`
-  const result = await query<{ max_num: string }>(
-    `SELECT COALESCE(MAX(CAST(SUBSTRING(no_registrasi FROM LENGTH($1) + 1) AS INTEGER)), 0)::text AS max_num
-     FROM purchase_orders WHERE no_registrasi LIKE $1 || '%'`,
-    [prefix]
+  const result = await query<{ no_registrasi: string }>(
+    `SELECT no_registrasi FROM purchase_orders WHERE no_registrasi LIKE $1 ORDER BY no_registrasi DESC`,
+    [`${prefix}%`]
   )
-  const maxNum = parseInt(result.rows[0]?.max_num ?? '0', 10) || 0
+  let maxNum = 0
+  for (const row of result.rows) {
+    const n = parseInt(row.no_registrasi.slice(prefix.length), 10)
+    if (!Number.isNaN(n) && n > maxNum) maxNum = n
+  }
   const nextNum = maxNum + 1
   return `${prefix}${String(nextNum).padStart(4, '0')}`
 }
@@ -138,6 +141,7 @@ purchaseOrdersRouter.post('/purchase-orders', async (req, res) => {
     } catch (err: unknown) {
       const code = (err as { code?: string })?.code
       if (code === '23505' && attempt < maxRetries) {
+        await new Promise((r) => setTimeout(r, 80 * attempt))
         continue
       }
       console.error('POST /purchase-orders', err)
