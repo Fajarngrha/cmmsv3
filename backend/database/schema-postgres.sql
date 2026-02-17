@@ -8,8 +8,8 @@
 -- - Purchase Orders: tanggal (filter Dashboard Period), untuk History & Maintenance Cost
 -- - Spare Parts: spec, for_machine
 -- - Upcoming PM: asset_name (filter Dashboard Section), scheduled_date
--- Buat database dulu (sebagai superuser): createdb cmms_db
--- Lalu: psql -d cmms_db -f schema-postgres.sql
+-- Buat database dulu (sebagai superuser): createdb cmms_dbv3
+-- Lalu: psql -d cmms_dbv3 -f schema-postgres.sql
 
 -- ------------------------------------------------------------
 -- ENUM types

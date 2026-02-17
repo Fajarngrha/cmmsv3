@@ -51,19 +51,20 @@ sudo -u postgres psql
 Di `psql`:
 
 ```sql
-CREATE USER cmms_user WITH PASSWORD 'ganti_password_kuat';
-CREATE DATABASE cmms_db OWNER cmms_user;
+CREATE USER cmms_userv3 WITH PASSWORD 'ganti_password_kuat';
+CREATE DATABASE cmms_dbv3 OWNER cmms_userv3;
 \q
 ```
 
-### 2.4 Jalankan skema dan seed
+### 2.4 Jalankan skema, grant, dan seed
 
 Di server, dari folder project (setelah kode di-upload):
 
 ```bash
 cd /path/ke/CMMS
-psql -U cmms_user -d cmms_db -h localhost -f backend/database/schema-postgres.sql
-psql -U cmms_user -d cmms_db -h localhost -f backend/database/seed-postgres.sql
+sudo -u postgres psql -d cmms_dbv3 -f backend/database/schema-postgres.sql
+sudo -u postgres psql -d cmms_dbv3 -v ON_ERROR_STOP=1 -f backend/database/grant-permissions-cmms_dbv3.sql
+psql -U cmms_userv3 -d cmms_dbv3 -h localhost -f backend/database/seed-postgres.sql
 ```
 
 (Ganti `/path/ke/CMMS` dengan path sebenarnya, mis. `/var/www/cmms`.)
@@ -127,15 +128,15 @@ HOST=0.0.0.0
 # PostgreSQL
 DB_HOST=localhost
 DB_PORT=5432
-DB_USER=cmms_user
+DB_USER=cmms_userv3
 DB_PASSWORD=ganti_password_kuat
-DB_NAME=cmms_db
+DB_NAME=cmms_dbv3
 ```
 
 Atau satu URL:
 
 ```env
-DATABASE_URL=postgresql://cmms_user:ganti_password_kuat@localhost:5432/cmms_db
+DATABASE_URL=postgresql://cmms_userv3:ganti_password_kuat@localhost:5432/cmms_dbv3
 ```
 
 **Penting:** Backend saat ini masih memakai data mock. Setelah Anda mengintegrasikan `pg`, pastikan backend membaca env di atas dan connect ke PostgreSQL. Sampai itu dilakukan, deploy tetap jalan dengan data in-memory.

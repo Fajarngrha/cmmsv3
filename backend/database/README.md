@@ -14,8 +14,9 @@
 | **PostgreSQL** | |
 | `schema-postgres.sql` | DDL: buat semua tabel + ENUM + trigger di PostgreSQL |
 | `seed-postgres.sql` | Data awal (assets, WO, spare parts, PO, PM) |
+| `grant-permissions-cmms_dbv3.sql` | Grant hak akses ke user cmms_userv3 (database cmms_dbv3) |
 | **MySQL** | |
-| `schema.sql` | DDL: buat database `cmms_db` dan semua tabel |
+| `schema.sql` | DDL: buat database dan semua tabel |
 | `seed.sql` | Data awal (MySQL) |
 
 ## Tabel
@@ -34,29 +35,37 @@ Dashboard KPIs (downtime, maintenance cost, total WO, diagram trend/pareto) dihi
 
 ## PostgreSQL (disarankan)
 
-### 1. Buat database
+### 1. Buat database & user (contoh: cmms_dbv3, cmms_userv3)
 
 ```bash
-createdb cmms_db
+sudo -u postgres createuser -P cmms_userv3
+sudo -u postgres createdb -O cmms_userv3 cmms_dbv3
 ```
 
 Atau dari `psql`:
 
 ```sql
-CREATE DATABASE cmms_db;
-\c cmms_db
+CREATE USER cmms_userv3 WITH PASSWORD 'your_password';
+CREATE DATABASE cmms_dbv3 OWNER cmms_userv3;
+\c cmms_dbv3
 ```
 
 ### 2. Jalankan skema
 
 ```bash
-psql -d cmms_db -f backend/database/schema-postgres.sql
+psql -d cmms_dbv3 -f backend/database/schema-postgres.sql
 ```
 
-### 3. Isi data awal (opsional)
+### 3. Grant hak akses (agar tidak error 42501)
 
 ```bash
-psql -d cmms_db -f backend/database/seed-postgres.sql
+sudo -u postgres psql -d cmms_dbv3 -v ON_ERROR_STOP=1 -f backend/database/grant-permissions-cmms_dbv3.sql
+```
+
+### 4. Isi data awal (opsional)
+
+```bash
+psql -d cmms_dbv3 -f backend/database/seed-postgres.sql
 ```
 
 ### Jika database sudah ada (hanya tambah kolom)
@@ -89,15 +98,15 @@ Contoh variabel lingkungan (`.env` di folder `backend`):
 ```env
 DB_HOST=localhost
 DB_PORT=5432
-DB_USER=postgres
+DB_USER=cmms_userv3
 DB_PASSWORD=your_password
-DB_NAME=cmms_db
+DB_NAME=cmms_dbv3
 ```
 
 Atau satu URL:
 
 ```env
-DATABASE_URL=postgresql://postgres:your_password@localhost:5432/cmms_db
+DATABASE_URL=postgresql://cmms_userv3:your_password@localhost:5432/cmms_dbv3
 ```
 
 ---

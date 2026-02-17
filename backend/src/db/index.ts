@@ -10,7 +10,7 @@ function getConfig(): pg.PoolConfig {
   const port = Number(process.env.DB_PORT) || 5432
   const user = process.env.DB_USER || 'postgres'
   const password = process.env.DB_PASSWORD || ''
-  const database = process.env.DB_NAME || 'cmms_db'
+  const database = process.env.DB_NAME || 'cmms_dbv3'
   return { host, port, user, password, database }
 }
 
@@ -35,7 +35,7 @@ export function getConnectionInfo(): string {
     }
   }
   const user = process.env.DB_USER || 'postgres'
-  const db = process.env.DB_NAME || 'cmms_db'
+  const db = process.env.DB_NAME || 'cmms_dbv3'
   return `${user}@${db}`
 }
 

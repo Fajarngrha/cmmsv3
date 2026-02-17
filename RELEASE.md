@@ -5,21 +5,21 @@ Aplikasi CMMS siap go-live dengan **database PostgreSQL** (tidak menggunakan dat
 ## 1. Database PostgreSQL
 
 - Install PostgreSQL 14+.
-- Buat database: `createdb cmms_db`
-- Jalankan skema:
+- Buat database & user (contoh: `cmms_dbv3`, `cmms_userv3`), jalankan skema:
   ```bash
-  psql -d cmms_db -f backend/database/schema-postgres.sql
+  psql -d cmms_dbv3 -f backend/database/schema-postgres.sql
+  sudo -u postgres psql -d cmms_dbv3 -f backend/database/grant-permissions-cmms_dbv3.sql
   ```
 - (Opsional) Isi data awal:
   ```bash
-  psql -d cmms_db -f backend/database/seed-postgres.sql
+  psql -d cmms_dbv3 -f backend/database/seed-postgres.sql
   ```
 
 ## 2. Backend
 
 - Di folder `backend`, copy `.env.example` ke `.env`.
 - Set koneksi database:
-  - **Opsi A:** `DATABASE_URL=postgresql://user:password@host:5432/cmms_db`
+  - **Opsi A:** `DATABASE_URL=postgresql://cmms_userv3:password@host:5432/cmms_dbv3`
   - **Opsi B:** `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`
 - Install & jalankan:
   ```bash

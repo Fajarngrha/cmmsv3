@@ -19,7 +19,7 @@ fi
 
 # Ambil user dan database dari DATABASE_URL (postgresql://USER:PASS@HOST:PORT/DATABASE) atau DB_USER/DB_NAME
 DB_USER=""
-DB_NAME="cmms_db"
+DB_NAME="cmms_dbv3"
 if grep -q "^DATABASE_URL=" "$ENV_FILE"; then
   LINE=$(grep "^DATABASE_URL=" "$ENV_FILE" | cut -d= -f2- | tr -d '"' | tr -d "'")
   # user: antara :// dan : (password)

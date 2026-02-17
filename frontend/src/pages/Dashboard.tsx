@@ -55,6 +55,8 @@ interface DashboardKpis {
   pmComplianceRate: number
 }
 
+
+
 interface UpcomingPM {
   id: string
   pmId: string
@@ -63,6 +65,8 @@ interface UpcomingPM {
   scheduledDate: string
   assignedTo: string
 }
+
+
 
 const PIE_COLORS = ['#22c55e', '#3b82f6', '#f97316', '#ef4444']
 
@@ -360,7 +364,7 @@ export function Dashboard() {
                     nameKey="name"
                     label={({ name, value }) => `${name} ${value}%`}
                   >
-                    {pieData.map((entry) => (
+                    {pieData.map((entry, i) => (
                       <Cell key={entry.name} fill={entry.color} />
                     ))}
                   </Pie>

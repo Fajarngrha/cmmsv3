@@ -1,7 +1,7 @@
 -- ============================================================
 -- CMMS - Seed Data untuk PostgreSQL (sesuai mock terbaru)
 -- Jalankan SETELAH schema-postgres.sql
--- Contoh: psql -d cmms_db -f seed-postgres.sql
+-- Contoh: psql -d cmms_dbv3 -f seed-postgres.sql
 -- ============================================================
 
 -- ------------------------------------------------------------

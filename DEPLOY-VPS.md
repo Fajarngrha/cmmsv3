@@ -41,8 +41,8 @@ sudo -u postgres psql
 Di dalam `psql`:
 
 ```sql
-CREATE USER cmms_user WITH PASSWORD 'ganti_dengan_password_kuat';
-CREATE DATABASE cmms_db OWNER cmms_user;
+CREATE USER cmms_userv3 WITH PASSWORD 'ganti_dengan_password_kuat';
+CREATE DATABASE cmms_dbv3 OWNER cmms_userv3;
 \q
 ```
 
@@ -95,19 +95,13 @@ cd cmms/CMMS
 cd /var/www/cmms/CMMS   # sesuaikan path
 
 # Skema (wajib)
-sudo -u postgres psql -d cmms_db -f backend/database/schema-postgres.sql
+sudo -u postgres psql -d cmms_dbv3 -f backend/database/schema-postgres.sql
 
-# Jika pakai user cmms_user, grant hak akses ke tabel (biasanya sudah lewat OWNER)
+# Grant hak akses ke user aplikasi (wajib agar tidak error 42501)
+sudo -u postgres psql -d cmms_dbv3 -v ON_ERROR_STOP=1 -f backend/database/grant-permissions-cmms_dbv3.sql
+
 # Seed data awal (opsional)
-sudo -u postgres psql -d cmms_db -f backend/database/seed-postgres.sql
-```
-
-Jika Anda pakai user `cmms_user` dan database `cmms_db` dibuat dengan `OWNER cmms_user`, user itu sudah punya akses penuh. Jika Anda menjalankan schema dengan `postgres`, pastikan `cmms_user` punya hak:
-
-```sql
--- Jalankan sebagai postgres
-GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO cmms_user;
-GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO cmms_user;
+sudo -u postgres psql -d cmms_dbv3 -f backend/database/seed-postgres.sql
 ```
 
 ---
@@ -127,7 +121,7 @@ PORT=3001
 HOST=0.0.0.0
 
 # Gunakan user & database yang tadi dibuat
-DATABASE_URL=postgresql://cmms_user:ganti_dengan_password_kuat@localhost:5432/cmms_db
+DATABASE_URL=postgresql://cmms_userv3:ganti_dengan_password_kuat@localhost:5432/cmms_dbv3
 
 # Opsional: jika frontend sudah di-build dan ada di folder ini
 # STATIC_DIR=/var/www/cmms/CMMS/frontend/dist
@@ -178,7 +172,7 @@ maka saat jalankan dari `CMMS/backend`, path default sudah benar.
 cd /var/www/cmms/CMMS/backend
 npm install --production
 npm run build
-pm2 start dist/index.js --name cmms-api
+pm2 start dist/index.js --name cmms-apiv2
 pm2 save
 pm2 startup   # ikuti perintah yang muncul agar PM2 jalan lagi setelah reboot
 ```
@@ -284,7 +278,7 @@ sudo ufw enable
 | Langkah | Cek |
 |--------|-----|
 | Node.js & PostgreSQL terpasang | `node -v`, `psql --version` |
-| Database `cmms_db` & user dibuat | `psql -d cmms_db -c '\dt'` |
+| Database `cmms_dbv3` & user `cmms_userv3` dibuat | `psql -d cmms_dbv3 -c '\dt'` |
 | Schema & (opsional) seed dijalankan | Tabel tampil di `\dt` |
 | Backend `.env` (DATABASE_URL / DB_*) | Benar, password sesuai |
 | Frontend di-build tanpa VITE_API_URL | Ada folder `frontend/dist` |

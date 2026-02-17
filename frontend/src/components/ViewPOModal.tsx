@@ -150,7 +150,7 @@ export function ViewPOModal({ poId, onClose, onSuccess }: ViewPOModalProps) {
 
         <form onSubmit={handleSubmit} style={{ padding: '0 1.25rem 1.25rem' }}>
           <p style={{ fontSize: '0.9rem', color: '#64748b', marginBottom: '1rem' }}>
-            No PO biasanya diisi saat proses mencapai <strong>Tahap 5: Send Produksi</strong>. Edit di bawah lalu simpan.
+            No PO diisi saat proses mencapai <strong>Tahap 5: Send Produksi</strong>. Edit di bawah lalu simpan.
           </p>
           <div className="form-group">
             <label className="label" htmlFor="view-po-noPO">No PO</label>
