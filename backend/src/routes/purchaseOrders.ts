@@ -12,16 +12,13 @@ async function nextNoRegistrasi(): Promise<string> {
   const mm = String(now.getMonth() + 1).padStart(2, '0')
   const yy = String(now.getFullYear()).slice(-2)
   const prefix = `MTC/SPB/${mm}/${yy}/`
-  const result = await query<{ no_registrasi: string }>(
-    `SELECT no_registrasi FROM purchase_orders WHERE no_registrasi LIKE $1 ORDER BY no_registrasi DESC LIMIT 1`,
-    [`${prefix}%`]
+  const result = await query<{ max_num: string }>(
+    `SELECT COALESCE(MAX(CAST(SUBSTRING(no_registrasi FROM LENGTH($1) + 1) AS INTEGER)), 0)::text AS max_num
+     FROM purchase_orders WHERE no_registrasi LIKE $1 || '%'`,
+    [prefix]
   )
-  let nextNum = 1
-  if (result.rows.length > 0) {
-    const last = result.rows[0].no_registrasi
-    const numPart = last.slice(prefix.length)
-    nextNum = (parseInt(numPart, 10) || 0) + 1
-  }
+  const maxNum = parseInt(result.rows[0]?.max_num ?? '0', 10) || 0
+  const nextNum = maxNum + 1
   return `${prefix}${String(nextNum).padStart(4, '0')}`
 }
 
@@ -113,32 +110,39 @@ purchaseOrdersRouter.post('/purchase-orders', async (req, res) => {
   const kategoriOptions: POKategori[] = ['Preventive', 'Sparepart', 'Breakdown/Repair']
   const kategori = body.kategori && kategoriOptions.includes(body.kategori) ? body.kategori : 'Sparepart'
   const status = body.status && STATUS_OPTIONS.includes(body.status) ? body.status : 'Tahap 1'
-  try {
-    const noRegistrasi = await nextNoRegistrasi()
-    const result = await query(
-      `INSERT INTO purchase_orders (tanggal, item_deskripsi, model, harga_per_unit, qty, no_registrasi, no_po, mesin, no_quotation, supplier, kategori, total_harga, status)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
-       RETURNING id, tanggal, item_deskripsi, model, harga_per_unit, qty, no_registrasi, no_po, mesin, no_quotation, supplier, kategori, total_harga, status`,
-      [
-        body.tanggal.trim(),
-        body.itemDeskripsi.trim(),
-        (body.model ?? '').trim() || null,
-        hargaPerUnit,
-        qty,
-        noRegistrasi,
-        (body.noPO ?? '').trim() || null,
-        (body.mesin ?? '').trim() || null,
-        (body.noQuotation ?? '').trim() || null,
-        (body.supplier ?? '').trim() || null,
-        kategori,
-        totalHarga,
-        status,
-      ]
-    )
-    res.status(201).json(rowToPurchaseOrder(result.rows[0]))
-  } catch (err) {
-    console.error('POST /purchase-orders', err)
-    res.status(500).json({ error: 'Gagal menambah PO.' })
+  const maxRetries = 3
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      const noRegistrasi = await nextNoRegistrasi()
+      const result = await query(
+        `INSERT INTO purchase_orders (tanggal, item_deskripsi, model, harga_per_unit, qty, no_registrasi, no_po, mesin, no_quotation, supplier, kategori, total_harga, status)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+         RETURNING id, tanggal, item_deskripsi, model, harga_per_unit, qty, no_registrasi, no_po, mesin, no_quotation, supplier, kategori, total_harga, status`,
+        [
+          body.tanggal.trim(),
+          body.itemDeskripsi.trim(),
+          (body.model ?? '').trim() || null,
+          hargaPerUnit,
+          qty,
+          noRegistrasi,
+          (body.noPO ?? '').trim() || null,
+          (body.mesin ?? '').trim() || null,
+          (body.noQuotation ?? '').trim() || null,
+          (body.supplier ?? '').trim() || null,
+          kategori,
+          totalHarga,
+          status,
+        ]
+      )
+      return res.status(201).json(rowToPurchaseOrder(result.rows[0]))
+    } catch (err: unknown) {
+      const code = (err as { code?: string })?.code
+      if (code === '23505' && attempt < maxRetries) {
+        continue
+      }
+      console.error('POST /purchase-orders', err)
+      return res.status(500).json({ error: 'Gagal menambah PO.' })
+    }
   }
 })
 
