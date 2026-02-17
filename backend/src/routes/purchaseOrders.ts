@@ -1,29 +1,11 @@
 import { Router } from 'express'
 import type { POKategori, POStatus } from '../data/mock.js'
-import { query } from '../db/index.js'
+import { query, getPool } from '../db/index.js'
 import { rowToPurchaseOrder } from '../db/mappers.js'
 
 export const purchaseOrdersRouter = Router()
 
 const STATUS_OPTIONS: POStatus[] = ['Tahap 1', 'Tahap 2', 'Tahap 3', 'Tahap 4', 'Tahap 5', 'Tahap 6', 'Tahap 7']
-
-async function nextNoRegistrasi(): Promise<string> {
-  const now = new Date()
-  const mm = String(now.getMonth() + 1).padStart(2, '0')
-  const yy = String(now.getFullYear()).slice(-2)
-  const prefix = `MTC/SPB/${mm}/${yy}/`
-  const result = await query<{ no_registrasi: string }>(
-    `SELECT no_registrasi FROM purchase_orders WHERE no_registrasi LIKE $1 ORDER BY no_registrasi DESC`,
-    [`${prefix}%`]
-  )
-  let maxNum = 0
-  for (const row of result.rows) {
-    const n = parseInt(row.no_registrasi.slice(prefix.length), 10)
-    if (!Number.isNaN(n) && n > maxNum) maxNum = n
-  }
-  const nextNum = maxNum + 1
-  return `${prefix}${String(nextNum).padStart(4, '0')}`
-}
 
 purchaseOrdersRouter.get('/purchase-orders', async (_, res) => {
   try {
@@ -113,11 +95,28 @@ purchaseOrdersRouter.post('/purchase-orders', async (req, res) => {
   const kategoriOptions: POKategori[] = ['Preventive', 'Sparepart', 'Breakdown/Repair']
   const kategori = body.kategori && kategoriOptions.includes(body.kategori) ? body.kategori : 'Sparepart'
   const status = body.status && STATUS_OPTIONS.includes(body.status) ? body.status : 'Tahap 1'
-  const maxRetries = 3
+  const maxRetries = 2
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    const client = await getPool().connect()
     try {
-      const noRegistrasi = await nextNoRegistrasi()
-      const result = await query(
+      await client.query('BEGIN')
+      await client.query('LOCK TABLE purchase_orders IN EXCLUSIVE MODE')
+      const now = new Date()
+      const mm = String(now.getMonth() + 1).padStart(2, '0')
+      const yy = String(now.getFullYear()).slice(-2)
+      const prefix = `MTC/SPB/${mm}/${yy}/`
+      const sel = await client.query<{ no_registrasi: string }>(
+        `SELECT no_registrasi FROM purchase_orders WHERE no_registrasi LIKE $1`,
+        [`${prefix}%`]
+      )
+      let maxNum = 0
+      for (const row of sel.rows) {
+        const n = parseInt(row.no_registrasi.slice(prefix.length), 10)
+        if (!Number.isNaN(n) && n > maxNum) maxNum = n
+      }
+      const nextNum = maxNum + 1
+      const noRegistrasi = `${prefix}${String(nextNum).padStart(4, '0')}`
+      const result = await client.query(
         `INSERT INTO purchase_orders (tanggal, item_deskripsi, model, harga_per_unit, qty, no_registrasi, no_po, mesin, no_quotation, supplier, kategori, total_harga, status)
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
          RETURNING id, tanggal, item_deskripsi, model, harga_per_unit, qty, no_registrasi, no_po, mesin, no_quotation, supplier, kategori, total_harga, status`,
@@ -137,11 +136,15 @@ purchaseOrdersRouter.post('/purchase-orders', async (req, res) => {
           status,
         ]
       )
+      await client.query('COMMIT')
+      client.release()
       return res.status(201).json(rowToPurchaseOrder(result.rows[0]))
     } catch (err: unknown) {
+      await client.query('ROLLBACK').catch(() => {})
+      client.release()
       const code = (err as { code?: string })?.code
       if (code === '23505' && attempt < maxRetries) {
-        await new Promise((r) => setTimeout(r, 80 * attempt))
+        await new Promise((r) => setTimeout(r, 150))
         continue
       }
       console.error('POST /purchase-orders', err)
