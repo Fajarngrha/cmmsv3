@@ -148,6 +148,10 @@ purchaseOrdersRouter.post('/purchase-orders', async (req, res) => {
         })
       }
       if (code === '23505' && attempt < maxRetries) {
+        await query(
+          `UPDATE po_no_registrasi_seq SET next_val = greatest(next_val, $1) WHERE prefix = $2`,
+          [nextNum + 1, prefix]
+        ).catch(() => {})
         await new Promise((r) => setTimeout(r, retryDelayMs))
         continue
       }
