@@ -16,25 +16,35 @@ Panduan ini untuk **update aplikasi CMMS di VPS** ketika ada perubahan kode (fro
 
 ## Jika error duplicate no_registrasi (purchase_orders) masih muncul
 
-Jalankan **di VPS** (satu blok, path sesuaikan jika project Anda bukan `/var/cmmsv3`):
+**Penting:** Error itu hilang hanya jika (1) kode terbaru (yang pakai tabel `po_no_registrasi_seq`) sudah ada di server, dan (2) migration sudah dijalankan, lalu (3) backend di-build ulang dan PM2 di-restart.
+
+### Opsi A – Skrip otomatis (disarankan)
+
+Di VPS, dari **folder project** (mis. `/var/cmmsv3`):
 
 ```bash
 cd /var/cmmsv3
-git pull   # atau upload kode terbaru
-
-# Buat tabel counter & isi dari data PO yang sudah ada (sekali saja)
-sudo -u postgres psql -d cmms_dbv3 -f /var/cmmsv3/backend/database/migration-po-no-registrasi-seq.sql
-
-# Grant hak akses tabel baru
-sudo -u postgres psql -d cmms_dbv3 -v ON_ERROR_STOP=1 -f /var/cmmsv3/backend/database/grant-permissions-cmms_dbv3.sql
-
-# Build & restart
-cd /var/cmmsv3/backend && npm run build
-pm2 restart cmms-apiv3
-pm2 logs cmms-apiv3 --lines 20
+git pull   # pastikan kode terbaru
+bash backend/database/fix-duplicate-no-registrasi.sh
+pm2 logs cmms-apiv3 --lines 25
 ```
 
-Setelah itu, pastikan log **tidak** lagi menampilkan peringatan tentang `po_no_registrasi_seq`. Buat PO baru seharusnya tidak lagi error duplicate.
+Skrip akan: cek sumber pakai counter → jalankan migration → grant → build → cek dist pakai counter → restart PM2.
+
+### Opsi B – Manual
+
+```bash
+cd /var/cmmsv3
+git pull
+
+sudo -u postgres psql -d cmms_dbv3 -v ON_ERROR_STOP=1 -f /var/cmmsv3/backend/database/migration-po-no-registrasi-seq.sql
+sudo -u postgres psql -d cmms_dbv3 -v ON_ERROR_STOP=1 -f /var/cmmsv3/backend/database/grant-permissions-cmms_dbv3.sql
+
+cd /var/cmmsv3/backend && npm run build
+pm2 restart cmms-apiv3
+```
+
+**Verifikasi:** Setelah restart, di log tidak boleh ada peringatan `po_no_registrasi_seq`. Kalau masih error 23505, pastikan `backend/dist/routes/purchaseOrders.js` berisi string `po_no_registrasi_seq` (artinya build pakai kode baru). Kalau tidak ada, hapus `backend/dist` lalu `npm run build` lagi.
 
 ---
 

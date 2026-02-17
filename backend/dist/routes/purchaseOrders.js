@@ -122,7 +122,13 @@ purchaseOrdersRouter.post('/purchase-orders', async (req, res) => {
                 });
             }
             if (code === '23505' && attempt < maxRetries) {
-                await query(`UPDATE po_no_registrasi_seq SET next_val = greatest(next_val, $1) WHERE prefix = $2`, [nextNum + 1, prefix]).catch(() => { });
+                const bump = nextNum + 1;
+                await query(`UPDATE po_no_registrasi_seq SET next_val = greatest(next_val, $1) WHERE prefix = $2`, [bump, prefix]).catch(() => { });
+                const sync = await query(`SELECT max(CAST(substring(no_registrasi FROM 15) AS INTEGER)) AS max_val FROM purchase_orders WHERE no_registrasi LIKE $1`, [`${prefix}%`]).catch(() => ({ rows: [{ max_val: null }] }));
+                const maxInTable = sync.rows[0]?.max_val;
+                if (typeof maxInTable === 'number' && maxInTable >= bump) {
+                    await query(`UPDATE po_no_registrasi_seq SET next_val = $1 WHERE prefix = $2`, [maxInTable + 1, prefix]).catch(() => { });
+                }
                 await new Promise((r) => setTimeout(r, retryDelayMs));
                 continue;
             }
