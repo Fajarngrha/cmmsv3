@@ -80,13 +80,14 @@ purchaseOrdersRouter.post('/purchase-orders', async (req, res) => {
     const yy = String(now.getFullYear()).slice(-2);
     const prefix = `MTC/SPB/${mm}/${yy}/`;
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        let nextNum = 0;
         const client = await getPool().connect();
         try {
             await client.query('BEGIN');
             const seqResult = await client.query(`INSERT INTO po_no_registrasi_seq (prefix, next_val) VALUES ($1, 1)
          ON CONFLICT (prefix) DO UPDATE SET next_val = po_no_registrasi_seq.next_val + 1
          RETURNING next_val`, [prefix]);
-            const nextNum = seqResult.rows[0].next_val;
+            nextNum = seqResult.rows[0].next_val;
             const noRegistrasi = `${prefix}${String(nextNum).padStart(4, '0')}`;
             const result = await client.query(`INSERT INTO purchase_orders (tanggal, item_deskripsi, model, harga_per_unit, qty, no_registrasi, no_po, mesin, no_quotation, supplier, kategori, total_harga, status)
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
@@ -121,6 +122,7 @@ purchaseOrdersRouter.post('/purchase-orders', async (req, res) => {
                 });
             }
             if (code === '23505' && attempt < maxRetries) {
+                await query(`UPDATE po_no_registrasi_seq SET next_val = greatest(next_val, $1) WHERE prefix = $2`, [nextNum + 1, prefix]).catch(() => { });
                 await new Promise((r) => setTimeout(r, retryDelayMs));
                 continue;
             }

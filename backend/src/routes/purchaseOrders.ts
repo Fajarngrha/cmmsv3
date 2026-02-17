@@ -102,6 +102,7 @@ purchaseOrdersRouter.post('/purchase-orders', async (req, res) => {
   const yy = String(now.getFullYear()).slice(-2)
   const prefix = `MTC/SPB/${mm}/${yy}/`
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    let nextNum = 0
     const client = await getPool().connect()
     try {
       await client.query('BEGIN')
@@ -111,7 +112,7 @@ purchaseOrdersRouter.post('/purchase-orders', async (req, res) => {
          RETURNING next_val`,
         [prefix]
       )
-      const nextNum = seqResult.rows[0].next_val
+      nextNum = seqResult.rows[0].next_val
       const noRegistrasi = `${prefix}${String(nextNum).padStart(4, '0')}`
       const result = await client.query(
         `INSERT INTO purchase_orders (tanggal, item_deskripsi, model, harga_per_unit, qty, no_registrasi, no_po, mesin, no_quotation, supplier, kategori, total_harga, status)
