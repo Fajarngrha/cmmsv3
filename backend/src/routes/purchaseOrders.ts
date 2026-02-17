@@ -140,6 +140,13 @@ purchaseOrdersRouter.post('/purchase-orders', async (req, res) => {
       await client.query('ROLLBACK').catch(() => {})
       client.release()
       const code = (err as { code?: string })?.code
+      if (code === '42P01') {
+        console.error('POST /purchase-orders: tabel po_no_registrasi_seq belum ada. Jalankan migration:', err)
+        return res.status(503).json({
+          error: 'Database belum di-migrasi. Di server jalankan: sudo -u postgres psql -d cmms_dbv3 -f backend/database/migration-po-no-registrasi-seq.sql lalu grant dan restart PM2.',
+          code: 'MIGRATION_REQUIRED',
+        })
+      }
       if (code === '23505' && attempt < maxRetries) {
         await new Promise((r) => setTimeout(r, retryDelayMs))
         continue

@@ -14,6 +14,30 @@ Panduan ini untuk **update aplikasi CMMS di VPS** ketika ada perubahan kode (fro
 
 ---
 
+## Jika error duplicate no_registrasi (purchase_orders) masih muncul
+
+Jalankan **di VPS** (satu blok, path sesuaikan jika project Anda bukan `/var/cmmsv3`):
+
+```bash
+cd /var/cmmsv3
+git pull   # atau upload kode terbaru
+
+# Buat tabel counter & isi dari data PO yang sudah ada (sekali saja)
+sudo -u postgres psql -d cmms_dbv3 -f /var/cmmsv3/backend/database/migration-po-no-registrasi-seq.sql
+
+# Grant hak akses tabel baru
+sudo -u postgres psql -d cmms_dbv3 -v ON_ERROR_STOP=1 -f /var/cmmsv3/backend/database/grant-permissions-cmms_dbv3.sql
+
+# Build & restart
+cd /var/cmmsv3/backend && npm run build
+pm2 restart cmms-apiv3
+pm2 logs cmms-apiv3 --lines 20
+```
+
+Setelah itu, pastikan log **tidak** lagi menampilkan peringatan tentang `po_no_registrasi_seq`. Buat PO baru seharusnya tidak lagi error duplicate.
+
+---
+
 ## 1. Di komputer development (setelah ubah kode)
 
 ### 1.1 Build frontend
