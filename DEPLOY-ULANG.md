@@ -38,6 +38,40 @@ Tidak perlu `npm install` atau `npm run build` di backend di VPS jika backend ti
 
 ---
 
+## Jika error duplicate no_registrasi (purchase_orders) masih muncul
+
+**Penting:** Error itu hilang hanya jika (1) kode terbaru (yang pakai tabel `po_no_registrasi_seq`) sudah ada di server, dan (2) migration sudah dijalankan, lalu (3) backend di-build ulang dan PM2 di-restart.
+
+### Opsi A – Skrip otomatis (disarankan)
+
+Di VPS, dari **folder project** (mis. `/var/cmmsv3`):
+
+```bash
+cd /var/cmmsv3
+git pull   # pastikan kode terbaru
+bash backend/database/fix-duplicate-no-registrasi.sh
+pm2 logs cmms-apiv3 --lines 25
+```
+
+Skrip akan: cek sumber pakai counter → jalankan migration → grant → build → cek dist pakai counter → restart PM2.
+
+### Opsi B – Manual
+
+```bash
+cd /var/cmmsv3
+git pull
+
+sudo -u postgres psql -d cmms_dbv3 -v ON_ERROR_STOP=1 -f /var/cmmsv3/backend/database/migration-po-no-registrasi-seq.sql
+sudo -u postgres psql -d cmms_dbv3 -v ON_ERROR_STOP=1 -f /var/cmmsv3/backend/database/grant-permissions-cmms_dbv3.sql
+
+cd /var/cmmsv3/backend && npm run build
+pm2 restart cmms-apiv3
+```
+
+**Verifikasi:** Setelah restart, di log tidak boleh ada peringatan `po_no_registrasi_seq`. Kalau masih error 23505, pastikan `backend/dist/routes/purchaseOrders.js` berisi string `po_no_registrasi_seq` (artinya build pakai kode baru). Kalau tidak ada, hapus `backend/dist` lalu `npm run build` lagi.
+
+---
+
 ## 1. Di komputer development (setelah ubah kode)
 
 ### 1.1 Build frontend
@@ -172,6 +206,12 @@ Perhatian: skema penuh biasanya berisi `DROP TABLE`; hanya jalankan jika memang 
 
 **Jika ada skrip migration terpisah**, jalankan skrip itu ke `cmms_dbv3`.
 
+Contoh: untuk perbaikan error duplicate `no_registrasi` pada Purchase Orders (tabel counter):
+
+```bash
+sudo -u postgres psql -d cmms_dbv3 -f /var/cmmsv3/backend/database/migration-po-no-registrasi-seq.sql
+```
+
 ### 4.3 Grant ulang (setelah perubahan struktur)
 
 ```bash
@@ -233,6 +273,7 @@ Pastikan ada:
 - **PM2 masih pakai kode lama:** pastikan `npm run build` di folder `backend` di VPS, lalu `pm2 restart cmms-apiv3`.
 - **Error 28P01 (password):** cek `.env` di VPS (DATABASE_URL / DB_*) dan pastikan sama dengan user `cmms_userv3` di PostgreSQL.
 - **Error 42501 (permission denied):** jalankan lagi `grant-permissions-cmms_dbv3.sql` ke database `cmms_dbv3`, lalu restart PM2.
+- **Error duplicate no_registrasi (purchase_orders):** jalankan sekali migration `backend/database/migration-po-no-registrasi-seq.sql` ke `cmms_dbv3`, lalu grant ulang dan restart PM2.
 - **Frontend tidak berubah:** pastikan `frontend/dist/` di VPS sudah di-overwrite dengan hasil build terbaru (dari git pull atau upload/rsync).
 
 Dengan mengikuti panduan ini, setiap ada perubahan kode Anda bisa deploy ulang dengan konsisten dan mudah dicek.

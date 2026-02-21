@@ -73,6 +73,7 @@ purchaseOrdersRouter.post('/purchase-orders', async (req, res) => {
     const kategoriOptions = ['Preventive', 'Sparepart', 'Breakdown/Repair'];
     const kategori = body.kategori && kategoriOptions.includes(body.kategori) ? body.kategori : 'Sparepart';
     const status = body.status && STATUS_OPTIONS.includes(body.status) ? body.status : 'Tahap 1';
+<<<<<<< HEAD
     const maxRetries = 2;
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
         const client = await getPool().connect();
@@ -91,6 +92,35 @@ purchaseOrdersRouter.post('/purchase-orders', async (req, res) => {
                     maxNum = n;
             }
             const nextNum = maxNum + 1;
+=======
+    const maxRetries = 5;
+    const retryDelayMs = 250;
+    const now = new Date();
+    const mm = String(now.getMonth() + 1).padStart(2, '0');
+    const yy = String(now.getFullYear()).slice(-2);
+    const prefix = `MTC/SPB/${mm}/${yy}/`;
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        let nextNum = 0;
+        const client = await getPool().connect();
+        try {
+            await client.query('BEGIN');
+            // Sinkronkan counter dengan max no_registrasi yang sudah ada (next_val = terakhir dipakai)
+            await client.query(`INSERT INTO po_no_registrasi_seq (prefix, next_val)
+         SELECT $1, COALESCE(
+           (SELECT MAX(CAST(substring(no_registrasi FROM 15) AS INTEGER)) FROM purchase_orders WHERE no_registrasi LIKE $2),
+           0
+         )
+         ON CONFLICT (prefix) DO UPDATE SET next_val = greatest(
+           po_no_registrasi_seq.next_val,
+           COALESCE(
+             (SELECT MAX(CAST(substring(no_registrasi FROM 15) AS INTEGER)) FROM purchase_orders WHERE no_registrasi LIKE $2),
+             0
+           )
+         )`, [prefix, `${prefix}%`]);
+            // Alokasi: increment dan ambil nomor yang dipakai
+            const seqResult = await client.query(`UPDATE po_no_registrasi_seq SET next_val = next_val + 1 WHERE prefix = $1 RETURNING next_val`, [prefix]);
+            nextNum = seqResult.rows[0].next_val;
+>>>>>>> 93a151891c0b91a73e41e7c0ef611d94f648caac
             const noRegistrasi = `${prefix}${String(nextNum).padStart(4, '0')}`;
             const result = await client.query(`INSERT INTO purchase_orders (tanggal, item_deskripsi, model, harga_per_unit, qty, no_registrasi, no_po, mesin, no_quotation, supplier, kategori, total_harga, status)
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
@@ -117,14 +147,43 @@ purchaseOrdersRouter.post('/purchase-orders', async (req, res) => {
             await client.query('ROLLBACK').catch(() => { });
             client.release();
             const code = err?.code;
+<<<<<<< HEAD
             if (code === '23505' && attempt < maxRetries) {
                 await new Promise((r) => setTimeout(r, 150));
                 continue;
             }
+=======
+            if (code === '42P01') {
+                console.error('POST /purchase-orders: tabel po_no_registrasi_seq belum ada. Jalankan migration:', err);
+                return res.status(503).json({
+                    error: 'Database belum di-migrasi. Di server jalankan: sudo -u postgres psql -d cmms_dbv3 -f backend/database/migration-po-no-registrasi-seq.sql lalu grant dan restart PM2.',
+                    code: 'MIGRATION_REQUIRED',
+                });
+            }
+            if (code === '23505' && attempt < maxRetries) {
+                const bump = nextNum + 1;
+                await query(`UPDATE po_no_registrasi_seq SET next_val = greatest(next_val, $1) WHERE prefix = $2`, [bump, prefix]).catch(() => { });
+                const sync = await query(`SELECT max(CAST(substring(no_registrasi FROM 15) AS INTEGER)) AS max_val FROM purchase_orders WHERE no_registrasi LIKE $1`, [`${prefix}%`]).catch(() => ({ rows: [{ max_val: null }] }));
+                const maxInTable = sync.rows[0]?.max_val;
+                if (typeof maxInTable === 'number' && maxInTable >= bump) {
+                    await query(`UPDATE po_no_registrasi_seq SET next_val = $1 WHERE prefix = $2`, [maxInTable + 1, prefix]).catch(() => { });
+                }
+                await new Promise((r) => setTimeout(r, retryDelayMs));
+                continue;
+            }
+            if (code === '23505') {
+                console.error('POST /purchase-orders: duplicate no_registrasi after retries', err);
+                return res.status(409).json({
+                    error: 'Nomor registrasi bentrok. Silakan coba lagi.',
+                    code: 'DUPLICATE_NO_REGISTRASI',
+                });
+            }
+>>>>>>> 93a151891c0b91a73e41e7c0ef611d94f648caac
             console.error('POST /purchase-orders', err);
             return res.status(500).json({ error: 'Gagal menambah PO.' });
         }
     }
+    return res.status(500).json({ error: 'Gagal menambah PO setelah beberapa percobaan.' });
 });
 purchaseOrdersRouter.delete('/purchase-orders/:id', async (req, res) => {
     try {
