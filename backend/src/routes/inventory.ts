@@ -148,6 +148,22 @@ inventoryRouter.get('/inventory/spare-parts/history', async (req, res) => {
   }
 })
 
+inventoryRouter.delete('/inventory/spare-parts/history', async (req, res) => {
+  try {
+    const type = req.query.type as string | undefined
+    let result
+    if (type === 'in' || type === 'out') {
+      result = await query('DELETE FROM spare_part_history WHERE type = $1', [type])
+    } else {
+      result = await query('DELETE FROM spare_part_history')
+    }
+    res.json({ deleted: result.rowCount ?? 0 })
+  } catch (e) {
+    console.error(e)
+    res.status(500).json({ error: 'Gagal menghapus history spare part' })
+  }
+})
+
 inventoryRouter.patch('/inventory/spare-parts/:id', async (req, res) => {
   try {
     const id = req.params.id
@@ -217,6 +233,18 @@ inventoryRouter.patch('/inventory/spare-parts/:id', async (req, res) => {
   } catch (e) {
     console.error(e)
     res.status(500).json({ error: 'Gagal mengubah data spare part' })
+  }
+})
+
+inventoryRouter.delete('/inventory/spare-parts/:id', async (req, res) => {
+  try {
+    const id = req.params.id
+    const deleted = await query('DELETE FROM spare_parts WHERE id = $1 RETURNING id', [id])
+    if (deleted.rows.length === 0) return res.status(404).json({ error: 'Spare part tidak ditemukan.' })
+    res.status(204).send()
+  } catch (e) {
+    console.error(e)
+    res.status(500).json({ error: 'Gagal menghapus spare part' })
   }
 })
 

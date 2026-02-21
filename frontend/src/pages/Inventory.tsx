@@ -51,6 +51,7 @@ const IMPORT_TEMPLATE_ROWS: Record<string, string | number>[] = [
   { partCode: 'PRT-002', name: 'Filter Oli', category: 'Filters', stock: 5, minStock: 1, unit: 'pcs', location: 'Gudang B', spec: '', forMachine: '' },
 ]
 const ROWS_PER_PAGE = 50
+const HISTORY_ROWS_PER_PAGE = 50
 
 function downloadImportTemplate() {
   const content = buildCsvContent(IMPORT_TEMPLATE_ROWS, IMPORT_CSV_COLUMNS)
@@ -60,7 +61,7 @@ function downloadImportTemplate() {
 export function Inventory() {
   const [parts, setParts] = useState<SparePart[]>([])
   const [search, setSearch] = useState('')
-  const [categoryFilter, setCategoryFilter] = useState('')
+  const [stockStatusFilter, setStockStatusFilter] = useState<'all' | 'ok' | 'low'>('all')
   const [page, setPage] = useState(1)
   const [loading, setLoading] = useState(true)
   const [addModalOpen, setAddModalOpen] = useState(false)
@@ -68,6 +69,7 @@ export function Inventory() {
   const [issuePart, setIssuePart] = useState<SparePart | null>(null)
   const [history, setHistory] = useState<SparePartMovement[]>([])
   const [historyTypeFilter, setHistoryTypeFilter] = useState<'all' | 'in' | 'out'>('all')
+  const [historyPage, setHistoryPage] = useState(1)
   const [importMessage, setImportMessage] = useState<{ type: 'ok' | 'err'; text: string } | null>(null)
   const [importing, setImporting] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -177,10 +179,15 @@ export function Inventory() {
 
   const filtered = parts.filter((p) => {
     const matchSearch =
-      p.partCode.toLowerCase().includes(search.toLowerCase()) ||
-      p.name.toLowerCase().includes(search.toLowerCase())
-    const matchCat = !categoryFilter || p.category === categoryFilter
-    return matchSearch && matchCat
+      p.name.toLowerCase().includes(search.toLowerCase()) ||
+      (p.spec ?? '').toLowerCase().includes(search.toLowerCase()) ||
+      (p.forMachine ?? '').toLowerCase().includes(search.toLowerCase())
+    const isLowStock = p.stock <= p.minStock
+    const matchStatus =
+      stockStatusFilter === 'all' ||
+      (stockStatusFilter === 'ok' && !isLowStock) ||
+      (stockStatusFilter === 'low' && isLowStock)
+    return matchSearch && matchStatus
   })
   const totalFiltered = filtered.length
   const totalPages = Math.max(1, Math.ceil(totalFiltered / ROWS_PER_PAGE))
@@ -190,7 +197,7 @@ export function Inventory() {
 
   useEffect(() => {
     setPage(1)
-  }, [search, categoryFilter])
+  }, [search, stockStatusFilter])
 
   const chartData = categories.map((cat) => {
     const items = parts.filter((p) => p.category === cat)
@@ -200,6 +207,15 @@ export function Inventory() {
   })
 
   const lowStockCount = parts.filter((p) => p.stock <= p.minStock).length
+  const totalHistory = history.length
+  const historyTotalPages = Math.max(1, Math.ceil(totalHistory / HISTORY_ROWS_PER_PAGE))
+  const safeHistoryPage = Math.min(Math.max(1, historyPage), historyTotalPages)
+  const historyStartIdx = (safeHistoryPage - 1) * HISTORY_ROWS_PER_PAGE
+  const paginatedHistory = history.slice(historyStartIdx, historyStartIdx + HISTORY_ROWS_PER_PAGE)
+
+  useEffect(() => {
+    setHistoryPage(1)
+  }, [historyTypeFilter])
 
   const handleReceiveSubmit = (partId: string) => {
     const qty = Number(receiveQty)
@@ -318,21 +334,20 @@ export function Inventory() {
         <input
           type="search"
           className="input"
-          placeholder="Cari part code atau nama..."
+          placeholder="Cari nama, spesifikasi, atau untuk mesin..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           style={{ maxWidth: 280 }}
         />
         <select
           className="select"
-          value={categoryFilter}
-          onChange={(e) => setCategoryFilter(e.target.value)}
+          value={stockStatusFilter}
+          onChange={(e) => setStockStatusFilter(e.target.value as 'all' | 'ok' | 'low')}
           style={{ width: 'auto', minWidth: 160 }}
         >
-          <option value="">Semua Kategori</option>
-          {categories.map((c) => (
-            <option key={c} value={c}>{c}</option>
-          ))}
+          <option value="all">Semua Status</option>
+          <option value="ok">OK</option>
+          <option value="low">Low Stock</option>
         </select>
       </div>
 
@@ -476,6 +491,27 @@ export function Inventory() {
                                 >
                                   Masuk
                                 </button>
+                                <button
+                                  type="button"
+                                  style={{ display: 'block', width: '100%', padding: '0.5rem 0.75rem', textAlign: 'left', border: 'none', background: 'none', cursor: 'pointer', fontSize: '0.9rem', color: '#991b1b' }}
+                                  onClick={() => {
+                                    setActionMenuOpenId(null)
+                                    setReceivePartId(null)
+                                    setReceiveQty('')
+                                    if (window.confirm(`Hapus spare part ${p.partCode} (${p.name})?`)) {
+                                      fetch(apiUrl(`/api/inventory/spare-parts/${p.id}`), { method: 'DELETE' })
+                                        .then((r) => {
+                                          if (r.ok) {
+                                            load()
+                                            loadHistory()
+                                          }
+                                        })
+                                        .catch(() => {})
+                                    }
+                                  }}
+                                >
+                                  Delete
+                                </button>
                               </>
                             )}
                           </div>
@@ -527,7 +563,7 @@ export function Inventory() {
         <p style={{ margin: '0 0 1rem', fontSize: '0.85rem', color: '#64748b' }}>
           Rekapan transaksi untuk keperluan audit
         </p>
-        <div style={{ marginBottom: '1rem' }}>
+        <div style={{ marginBottom: '1rem', display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
           <select
             className="select"
             value={historyTypeFilter}
@@ -538,6 +574,50 @@ export function Inventory() {
             <option value="in">Masuk</option>
             <option value="out">Keluar</option>
           </select>
+          <button
+            type="button"
+            className="btn btn-secondary"
+            onClick={() => {
+              const columns: CsvColumn<SparePartMovement>[] = [
+                { header: 'Tanggal', getValue: (h) => new Date(h.createdAt).toLocaleString('id-ID') },
+                { header: 'Part Code', key: 'partCode' },
+                { header: 'Nama', key: 'partName' },
+                { header: 'Tipe', getValue: (h) => (h.type === 'in' ? 'Masuk' : 'Keluar') },
+                { header: 'Qty', key: 'qty' },
+                { header: 'Unit', key: 'unit' },
+                { header: 'PIC', getValue: (h) => h.pic || '—' },
+                { header: 'Keterangan', getValue: (h) => h.reason || '—' },
+              ]
+              exportToCsv(history, columns, `history-spare-parts-${new Date().toISOString().slice(0, 10)}.csv`)
+            }}
+          >
+            Export to CSV
+          </button>
+          <button
+            type="button"
+            className="btn"
+            style={{ background: '#fee2e2', color: '#991b1b', border: '1px solid #fecaca' }}
+            onClick={() => {
+              const scopeLabel =
+                historyTypeFilter === 'all'
+                  ? 'semua data history'
+                  : historyTypeFilter === 'in'
+                    ? 'history Masuk'
+                    : 'history Keluar'
+              if (!window.confirm(`Hapus ${scopeLabel}?`)) return
+              const q = historyTypeFilter === 'all' ? '' : `?type=${historyTypeFilter}`
+              fetch(apiUrl(`/api/inventory/spare-parts/history${q}`), { method: 'DELETE' })
+                .then((r) => {
+                  if (r.ok) {
+                    loadHistory()
+                    setHistoryPage(1)
+                  }
+                })
+                .catch(() => {})
+            }}
+          >
+            Clear History
+          </button>
         </div>
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem' }}>
           <thead>
@@ -560,7 +640,7 @@ export function Inventory() {
                 </td>
               </tr>
             ) : (
-              history.map((h) => (
+              paginatedHistory.map((h) => (
                 <tr key={h.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
                   <td style={{ padding: '0.75rem' }}>
                     {new Date(h.createdAt).toLocaleString('id-ID', { dateStyle: 'short', timeStyle: 'short' })}
@@ -587,6 +667,36 @@ export function Inventory() {
             )}
           </tbody>
         </table>
+        {!loading && totalHistory > 0 && (
+          <div style={{ paddingTop: '0.75rem', fontSize: '0.85rem', color: '#64748b', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
+            <span>
+              Menampilkan {historyStartIdx + 1}-{historyStartIdx + paginatedHistory.length} dari {totalHistory} riwayat
+            </span>
+            {historyTotalPages > 1 && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  style={{ padding: '0.35rem 0.65rem', fontSize: '0.8rem' }}
+                  onClick={() => setHistoryPage((p) => Math.max(1, p - 1))}
+                  disabled={safeHistoryPage <= 1}
+                >
+                  Sebelumnya
+                </button>
+                <span style={{ whiteSpace: 'nowrap' }}>Halaman {safeHistoryPage} dari {historyTotalPages}</span>
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  style={{ padding: '0.35rem 0.65rem', fontSize: '0.8rem' }}
+                  onClick={() => setHistoryPage((p) => Math.min(historyTotalPages, p + 1))}
+                  disabled={safeHistoryPage >= historyTotalPages}
+                >
+                  Berikutnya
+                </button>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {addModalOpen && (
