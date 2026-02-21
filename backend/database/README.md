@@ -2,6 +2,8 @@
 
 **Go-live:** Backend tidak lagi menggunakan data mock. Semua data dibaca/tulis dari database. Wajib konfigurasi PostgreSQL dan jalankan skema (dan opsional seed) sebelum menjalankan backend.
 
+**Migrasi:** Jika database sudah jalan dan Anda ingin menambah tabel/kolom, gunakan file di `migrations/` dan ikuti **PANDUAN-MIGRASI-DATABASE.md** di folder root CMMS.
+
 ## Persyaratan
 
 - **PostgreSQL 14+** (disarankan)

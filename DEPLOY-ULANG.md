@@ -4,6 +4,30 @@ Panduan ini untuk **update aplikasi CMMS di VPS** ketika ada perubahan kode (fro
 
 ---
 
+## Deploy cepat (hanya perubahan frontend)
+
+Jika yang berubah **hanya file frontend** (mis. halaman Tracking PO, Inventory, UI saja, tanpa ubah backend/DB):
+
+**Di komputer development:**
+
+```bash
+cd CMMS/frontend
+npm run build
+```
+
+**Kirim ke VPS:** `git push` lalu di VPS `git pull`, **atau** upload/rsync folder `frontend/dist/` ke VPS.
+
+**Di VPS:** Pastikan `frontend/dist/` ter-update, lalu restart API (API tetap serve file frontend dari dist):
+
+```bash
+cd /var/cmmsv3
+pm2 restart cmms-apiv3
+```
+
+Tidak perlu `npm install` atau `npm run build` di backend di VPS jika backend tidak diubah.
+
+---
+
 ## Ringkasan alur
 
 1. **Di komputer development:** build frontend + backend.

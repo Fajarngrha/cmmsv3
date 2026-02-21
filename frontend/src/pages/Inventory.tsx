@@ -3,7 +3,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsive
 import { apiUrl } from '../api'
 import { AddSparePartModal } from '../components/AddSparePartModal'
 import { IssueSparePartModal } from '../components/IssueSparePartModal'
-import { exportToCsv, parseCsvToObjects, type CsvColumn } from '../utils/exportToCsv'
+import { buildCsvContent, downloadCsv, exportToCsv, parseCsvToObjects, type CsvColumn } from '../utils/exportToCsv'
 
 interface SparePart {
   id: string
@@ -29,6 +29,30 @@ interface SparePartMovement {
   reason?: string
   pic?: string
   createdAt: string
+}
+
+/** Kolom CSV untuk import (harus sama dengan yang dibaca handleImportFile). */
+const IMPORT_CSV_COLUMNS: CsvColumn<Record<string, string | number>>[] = [
+  { header: 'Part Code', key: 'partCode' },
+  { header: 'Nama', key: 'name' },
+  { header: 'Category', key: 'category' },
+  { header: 'Stock', key: 'stock' },
+  { header: 'Min Stock', key: 'minStock' },
+  { header: 'Unit', key: 'unit' },
+  { header: 'Location', key: 'location' },
+  { header: 'Spesifikasi', key: 'spec' },
+  { header: 'Untuk Mesin', key: 'forMachine' },
+]
+
+/** Contoh baris untuk template import. */
+const IMPORT_TEMPLATE_ROWS: Record<string, string | number>[] = [
+  { partCode: 'PRT-001', name: 'Bearing 6205', category: 'Bearings', stock: 10, minStock: 2, unit: 'pcs', location: 'Gudang A', spec: 'Deep groove', forMachine: 'NC 12' },
+  { partCode: 'PRT-002', name: 'Filter Oli', category: 'Filters', stock: 5, minStock: 1, unit: 'pcs', location: 'Gudang B', spec: '', forMachine: '' },
+]
+
+function downloadImportTemplate() {
+  const content = buildCsvContent(IMPORT_TEMPLATE_ROWS, IMPORT_CSV_COLUMNS)
+  downloadCsv(content, 'template-import-spare-parts.csv')
 }
 
 export function Inventory() {
@@ -230,6 +254,9 @@ export function Inventory() {
         >
           Export to CSV
         </button>
+        <button type="button" className="btn btn-secondary" onClick={downloadImportTemplate}>
+          Download template
+        </button>
         <button
           type="button"
           className="btn btn-secondary"
@@ -256,6 +283,9 @@ export function Inventory() {
           {importMessage.text}
         </p>
       )}
+      <p style={{ margin: '-0.5rem 0 1rem', fontSize: '0.8rem', color: '#64748b' }}>
+        Format import: CSV dengan baris pertama header. Kolom wajib: <strong>Nama</strong>, <strong>Category</strong>. Opsional: Part Code, Stock, Min Stock, Unit, Location, Spesifikasi, Untuk Mesin. Gunakan &quot;Download template&quot; untuk contoh.
+      </p>
 
       <div className="card" style={{ marginBottom: '1.5rem' }}>
         <h3 style={{ margin: '0 0 1rem', fontSize: '1rem' }}>Stock by Category</h3>

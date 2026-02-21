@@ -23,6 +23,8 @@ interface PurchaseOrder {
   status: string
 }
 
+const ROWS_PER_PAGE = 100
+
 function formatIdr(n: number) {
   return 'Rp. ' + new Intl.NumberFormat('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(n)
 }
@@ -31,6 +33,7 @@ export function TrackingPO() {
   const [list, setList] = useState<PurchaseOrder[]>([])
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('')
+  const [page, setPage] = useState(1)
   const [modalOpen, setModalOpen] = useState(false)
   const [historyOpen, setHistoryOpen] = useState(false)
   const [viewPoId, setViewPoId] = useState<string | null>(null)
@@ -61,6 +64,16 @@ export function TrackingPO() {
     const matchStatus = !statusFilter || po.status === statusFilter
     return matchSearch && matchStatus
   })
+
+  const totalFiltered = filtered.length
+  const totalPages = Math.max(1, Math.ceil(totalFiltered / ROWS_PER_PAGE))
+  const safePage = Math.min(Math.max(1, page), totalPages)
+  const startIdx = (safePage - 1) * ROWS_PER_PAGE
+  const paginated = filtered.slice(startIdx, startIdx + ROWS_PER_PAGE)
+
+  useEffect(() => {
+    setPage(1)
+  }, [search, statusFilter])
 
   return (
     <div className="page">
@@ -140,7 +153,7 @@ export function TrackingPO() {
               </tr>
             </thead>
             <tbody>
-              {filtered.map((po) => (
+              {paginated.map((po) => (
                 <tr key={po.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
                   <td style={{ padding: '0.75rem' }}>{po.tanggal}</td>
                   <td style={{ padding: '0.75rem', maxWidth: 200 }} title={po.itemDeskripsi}>
@@ -186,10 +199,39 @@ export function TrackingPO() {
           </table>
         )}
         {!loading && (
-          <div style={{ padding: '0.75rem 1rem', borderTop: '1px solid #f1f5f9', fontSize: '0.85rem', color: '#64748b' }}>
-            {filtered.length > 0
-              ? `Menampilkan ${filtered.length} dari ${list.length} PO${statusFilter || search.trim() ? ' (filter aktif)' : ''}`
-              : 'Tidak ada PO yang sesuai filter.'}
+          <div style={{ padding: '0.75rem 1rem', borderTop: '1px solid #f1f5f9', fontSize: '0.85rem', color: '#64748b', display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '1rem' }}>
+            <span>
+              {totalFiltered > 0
+                ? `Menampilkan ${startIdx + 1}-${startIdx + paginated.length} dari ${totalFiltered} PO${statusFilter || search.trim() ? ' (filter aktif)' : ''}`
+                : 'Tidak ada PO yang sesuai filter.'}
+            </span>
+            {totalPages > 1 && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  style={{ padding: '0.35rem 0.65rem', fontSize: '0.8rem' }}
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  disabled={safePage <= 1}
+                  aria-label="Halaman sebelumnya"
+                >
+                  Sebelumnya
+                </button>
+                <span style={{ whiteSpace: 'nowrap' }}>
+                  Halaman {safePage} dari {totalPages}
+                </span>
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  style={{ padding: '0.35rem 0.65rem', fontSize: '0.8rem' }}
+                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={safePage >= totalPages}
+                  aria-label="Halaman berikutnya"
+                >
+                  Berikutnya
+                </button>
+              </div>
+            )}
           </div>
         )}
       </div>
