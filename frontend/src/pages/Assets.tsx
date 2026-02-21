@@ -17,11 +17,14 @@ interface Asset {
   installedAt?: string
 }
 
+const ROWS_PER_PAGE = 50
+
 export function Assets() {
   const [assets, setAssets] = useState<Asset[]>([])
   const [search, setSearch] = useState('')
   const [healthFilter, setHealthFilter] = useState<string>('')
   const [sectionFilter, setSectionFilter] = useState<string>('')
+  const [page, setPage] = useState(1)
   const [loading, setLoading] = useState(true)
   const [modalOpen, setModalOpen] = useState(false)
   const [viewAsset, setViewAsset] = useState<Asset | null>(null)
@@ -112,6 +115,15 @@ export function Assets() {
     const matchSection = !sectionFilter || a.section === sectionFilter
     return matchSearch && matchHealth && matchSection
   })
+  const totalFiltered = filtered.length
+  const totalPages = Math.max(1, Math.ceil(totalFiltered / ROWS_PER_PAGE))
+  const safePage = Math.min(Math.max(1, page), totalPages)
+  const startIdx = (safePage - 1) * ROWS_PER_PAGE
+  const paginated = filtered.slice(startIdx, startIdx + ROWS_PER_PAGE)
+
+  useEffect(() => {
+    setPage(1)
+  }, [search, healthFilter, sectionFilter])
 
   const running = assets.filter((a) => a.health === 'Running').length
   const warning = assets.filter((a) => a.health === 'Warning').length
@@ -245,7 +257,7 @@ export function Assets() {
               </tr>
             </thead>
             <tbody>
-              {filtered.map((a) => (
+              {paginated.map((a) => (
                   <tr key={a.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
                     <td style={{ padding: '0.75rem' }}>
                       <a href="#" style={{ color: '#3b82f6', fontWeight: 500 }}>{a.assetId}</a>
@@ -286,9 +298,36 @@ export function Assets() {
             </tbody>
           </table>
         )}
-        {!loading && filtered.length > 0 && (
-          <div style={{ padding: '0.75rem 1rem', borderTop: '1px solid #f1f5f9', fontSize: '0.85rem', color: '#64748b' }}>
-            Menampilkan {filtered.length} dari {assets.length} assets
+        {!loading && (
+          <div style={{ padding: '0.75rem 1rem', borderTop: '1px solid #f1f5f9', fontSize: '0.85rem', color: '#64748b', display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '1rem' }}>
+            <span>
+              {totalFiltered > 0
+                ? `Menampilkan ${startIdx + 1}-${startIdx + paginated.length} dari ${totalFiltered} assets`
+                : 'Tidak ada asset yang sesuai filter.'}
+            </span>
+            {totalPages > 1 && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  style={{ padding: '0.35rem 0.65rem', fontSize: '0.8rem' }}
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  disabled={safePage <= 1}
+                >
+                  Sebelumnya
+                </button>
+                <span style={{ whiteSpace: 'nowrap' }}>Halaman {safePage} dari {totalPages}</span>
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  style={{ padding: '0.35rem 0.65rem', fontSize: '0.8rem' }}
+                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={safePage >= totalPages}
+                >
+                  Berikutnya
+                </button>
+              </div>
+            )}
           </div>
         )}
       </div>

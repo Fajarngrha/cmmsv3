@@ -73,26 +73,6 @@ purchaseOrdersRouter.post('/purchase-orders', async (req, res) => {
     const kategoriOptions = ['Preventive', 'Sparepart', 'Breakdown/Repair'];
     const kategori = body.kategori && kategoriOptions.includes(body.kategori) ? body.kategori : 'Sparepart';
     const status = body.status && STATUS_OPTIONS.includes(body.status) ? body.status : 'Tahap 1';
-<<<<<<< HEAD
-    const maxRetries = 2;
-    for (let attempt = 1; attempt <= maxRetries; attempt++) {
-        const client = await getPool().connect();
-        try {
-            await client.query('BEGIN');
-            await client.query('LOCK TABLE purchase_orders IN EXCLUSIVE MODE');
-            const now = new Date();
-            const mm = String(now.getMonth() + 1).padStart(2, '0');
-            const yy = String(now.getFullYear()).slice(-2);
-            const prefix = `MTC/SPB/${mm}/${yy}/`;
-            const sel = await client.query(`SELECT no_registrasi FROM purchase_orders WHERE no_registrasi LIKE $1`, [`${prefix}%`]);
-            let maxNum = 0;
-            for (const row of sel.rows) {
-                const n = parseInt(row.no_registrasi.slice(prefix.length), 10);
-                if (!Number.isNaN(n) && n > maxNum)
-                    maxNum = n;
-            }
-            const nextNum = maxNum + 1;
-=======
     const maxRetries = 5;
     const retryDelayMs = 250;
     const now = new Date();
@@ -120,7 +100,6 @@ purchaseOrdersRouter.post('/purchase-orders', async (req, res) => {
             // Alokasi: increment dan ambil nomor yang dipakai
             const seqResult = await client.query(`UPDATE po_no_registrasi_seq SET next_val = next_val + 1 WHERE prefix = $1 RETURNING next_val`, [prefix]);
             nextNum = seqResult.rows[0].next_val;
->>>>>>> 93a151891c0b91a73e41e7c0ef611d94f648caac
             const noRegistrasi = `${prefix}${String(nextNum).padStart(4, '0')}`;
             const result = await client.query(`INSERT INTO purchase_orders (tanggal, item_deskripsi, model, harga_per_unit, qty, no_registrasi, no_po, mesin, no_quotation, supplier, kategori, total_harga, status)
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
@@ -147,12 +126,6 @@ purchaseOrdersRouter.post('/purchase-orders', async (req, res) => {
             await client.query('ROLLBACK').catch(() => { });
             client.release();
             const code = err?.code;
-<<<<<<< HEAD
-            if (code === '23505' && attempt < maxRetries) {
-                await new Promise((r) => setTimeout(r, 150));
-                continue;
-            }
-=======
             if (code === '42P01') {
                 console.error('POST /purchase-orders: tabel po_no_registrasi_seq belum ada. Jalankan migration:', err);
                 return res.status(503).json({
@@ -178,7 +151,6 @@ purchaseOrdersRouter.post('/purchase-orders', async (req, res) => {
                     code: 'DUPLICATE_NO_REGISTRASI',
                 });
             }
->>>>>>> 93a151891c0b91a73e41e7c0ef611d94f648caac
             console.error('POST /purchase-orders', err);
             return res.status(500).json({ error: 'Gagal menambah PO.' });
         }

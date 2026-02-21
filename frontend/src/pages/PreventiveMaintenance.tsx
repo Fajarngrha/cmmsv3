@@ -18,8 +18,11 @@ interface DashboardKpis {
   pmComplianceRate: number
 }
 
+const ROWS_PER_PAGE = 50
+
 export function PreventiveMaintenance() {
   const [upcomingPM, setUpcomingPM] = useState<UpcomingPM[]>([])
+  const [page, setPage] = useState(1)
   const [kpis, setKpis] = useState<DashboardKpis | null>(null)
   const [loading, setLoading] = useState(true)
   const [scheduleModalOpen, setScheduleModalOpen] = useState(false)
@@ -50,6 +53,15 @@ export function PreventiveMaintenance() {
         : 'red'
     : 'green'
   const zoneLabel = pmZone === 'green' ? 'On Track' : pmZone === 'yellow' ? 'Warning' : 'Needs Attention'
+  const totalFiltered = upcomingPM.length
+  const totalPages = Math.max(1, Math.ceil(totalFiltered / ROWS_PER_PAGE))
+  const safePage = Math.min(Math.max(1, page), totalPages)
+  const startIdx = (safePage - 1) * ROWS_PER_PAGE
+  const paginated = upcomingPM.slice(startIdx, startIdx + ROWS_PER_PAGE)
+
+  useEffect(() => {
+    setPage(1)
+  }, [upcomingPM.length])
 
   return (
     <div className="page">
@@ -124,7 +136,7 @@ export function PreventiveMaintenance() {
               </tr>
             </thead>
             <tbody>
-              {upcomingPM.map((pm) => (
+              {paginated.map((pm) => (
                 <tr key={pm.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
                   <td style={{ padding: '0.75rem' }}>
                     <a href="#" style={{ color: '#3b82f6', fontWeight: 500 }}>{pm.pmId}</a>
@@ -166,6 +178,34 @@ export function PreventiveMaintenance() {
         )}
         {!loading && upcomingPM.length === 0 && (
           <p style={{ padding: '1rem 0', color: '#64748b' }}>No upcoming PM tasks.</p>
+        )}
+        {!loading && upcomingPM.length > 0 && (
+          <div style={{ paddingTop: '0.75rem', fontSize: '0.85rem', color: '#64748b', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
+            <span>Menampilkan {startIdx + 1}-{startIdx + paginated.length} dari {totalFiltered} jadwal PM</span>
+            {totalPages > 1 && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  style={{ padding: '0.35rem 0.65rem', fontSize: '0.8rem' }}
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  disabled={safePage <= 1}
+                >
+                  Sebelumnya
+                </button>
+                <span style={{ whiteSpace: 'nowrap' }}>Halaman {safePage} dari {totalPages}</span>
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  style={{ padding: '0.35rem 0.65rem', fontSize: '0.8rem' }}
+                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={safePage >= totalPages}
+                >
+                  Berikutnya
+                </button>
+              </div>
+            )}
+          </div>
         )}
       </div>
 

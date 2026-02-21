@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 import { apiUrl } from '../api'
 import { AddSparePartModal } from '../components/AddSparePartModal'
+import { EditSparePartModal } from '../components/EditSparePartModal'
 import { IssueSparePartModal } from '../components/IssueSparePartModal'
 import { buildCsvContent, downloadCsv, exportToCsv, parseCsvToObjects, type CsvColumn } from '../utils/exportToCsv'
 
@@ -49,6 +50,7 @@ const IMPORT_TEMPLATE_ROWS: Record<string, string | number>[] = [
   { partCode: 'PRT-001', name: 'Bearing 6205', category: 'Bearings', stock: 10, minStock: 2, unit: 'pcs', location: 'Gudang A', spec: 'Deep groove', forMachine: 'NC 12' },
   { partCode: 'PRT-002', name: 'Filter Oli', category: 'Filters', stock: 5, minStock: 1, unit: 'pcs', location: 'Gudang B', spec: '', forMachine: '' },
 ]
+const ROWS_PER_PAGE = 50
 
 function downloadImportTemplate() {
   const content = buildCsvContent(IMPORT_TEMPLATE_ROWS, IMPORT_CSV_COLUMNS)
@@ -59,8 +61,10 @@ export function Inventory() {
   const [parts, setParts] = useState<SparePart[]>([])
   const [search, setSearch] = useState('')
   const [categoryFilter, setCategoryFilter] = useState('')
+  const [page, setPage] = useState(1)
   const [loading, setLoading] = useState(true)
   const [addModalOpen, setAddModalOpen] = useState(false)
+  const [editPart, setEditPart] = useState<SparePart | null>(null)
   const [issuePart, setIssuePart] = useState<SparePart | null>(null)
   const [history, setHistory] = useState<SparePartMovement[]>([])
   const [historyTypeFilter, setHistoryTypeFilter] = useState<'all' | 'in' | 'out'>('all')
@@ -178,6 +182,15 @@ export function Inventory() {
     const matchCat = !categoryFilter || p.category === categoryFilter
     return matchSearch && matchCat
   })
+  const totalFiltered = filtered.length
+  const totalPages = Math.max(1, Math.ceil(totalFiltered / ROWS_PER_PAGE))
+  const safePage = Math.min(Math.max(1, page), totalPages)
+  const startIdx = (safePage - 1) * ROWS_PER_PAGE
+  const paginated = filtered.slice(startIdx, startIdx + ROWS_PER_PAGE)
+
+  useEffect(() => {
+    setPage(1)
+  }, [search, categoryFilter])
 
   const chartData = categories.map((cat) => {
     const items = parts.filter((p) => p.category === cat)
@@ -284,7 +297,7 @@ export function Inventory() {
         </p>
       )}
       <p style={{ margin: '-0.5rem 0 1rem', fontSize: '0.8rem', color: '#64748b' }}>
-        Format import: CSV dengan baris pertama header. Kolom wajib: <strong>Nama</strong>, <strong>Category</strong>. Opsional: Part Code, Stock, Min Stock, Unit, Location, Spesifikasi, Untuk Mesin. Gunakan &quot;Download template&quot; untuk contoh.
+        Format import: CSV dengan baris pertama header. Kolom wajib: <strong>Nama</strong>, <strong>Category</strong>. Opsional: Part Code, Stock, Min Stock, Unit, Lokasi (Location), Spesifikasi, Untuk Mesin. Gunakan &quot;Download template&quot; untuk contoh.
       </p>
 
       <div className="card" style={{ marginBottom: '1.5rem' }}>
@@ -338,13 +351,13 @@ export function Inventory() {
                 <th style={{ padding: '0.75rem' }}>Stock</th>
                 <th style={{ padding: '0.75rem' }}>Min Stock</th>
                 <th style={{ padding: '0.75rem' }}>Unit</th>
-                <th style={{ padding: '0.75rem' }}>Location</th>
+                <th style={{ padding: '0.75rem' }}>Lokasi</th>
                 <th style={{ padding: '0.75rem' }}>Status</th>
                 <th style={{ padding: '0.75rem', minWidth: 100 }}>Actions</th>
               </tr>
             </thead>
             <tbody>
-              {filtered.map((p) => {
+              {paginated.map((p) => {
                 const isLow = p.stock <= p.minStock
                 return (
                   <tr key={p.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
@@ -439,6 +452,18 @@ export function Inventory() {
                                 <button
                                   type="button"
                                   style={{ display: 'block', width: '100%', padding: '0.5rem 0.75rem', textAlign: 'left', border: 'none', background: 'none', cursor: 'pointer', fontSize: '0.9rem' }}
+                                  onClick={() => {
+                                    setActionMenuOpenId(null)
+                                    setReceivePartId(null)
+                                    setReceiveQty('')
+                                    setEditPart(p)
+                                  }}
+                                >
+                                  Edit
+                                </button>
+                                <button
+                                  type="button"
+                                  style={{ display: 'block', width: '100%', padding: '0.5rem 0.75rem', textAlign: 'left', border: 'none', background: 'none', cursor: 'pointer', fontSize: '0.9rem' }}
                                   onClick={() => { setActionMenuOpenId(null); setIssuePart(p) }}
                                   disabled={p.stock <= 0}
                                 >
@@ -463,9 +488,36 @@ export function Inventory() {
             </tbody>
           </table>
         )}
-        {!loading && filtered.length > 0 && (
-          <div style={{ padding: '0.75rem 1rem', borderTop: '1px solid #f1f5f9', fontSize: '0.85rem', color: '#64748b' }}>
-            Menampilkan {filtered.length} dari {parts.length} spare parts
+        {!loading && (
+          <div style={{ padding: '0.75rem 1rem', borderTop: '1px solid #f1f5f9', fontSize: '0.85rem', color: '#64748b', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem' }}>
+            <span>
+              {totalFiltered > 0
+                ? `Menampilkan ${startIdx + 1}-${startIdx + paginated.length} dari ${totalFiltered} spare parts`
+                : 'Tidak ada spare part yang sesuai filter.'}
+            </span>
+            {totalPages > 1 && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  style={{ padding: '0.35rem 0.65rem', fontSize: '0.8rem' }}
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  disabled={safePage <= 1}
+                >
+                  Sebelumnya
+                </button>
+                <span style={{ whiteSpace: 'nowrap' }}>Halaman {safePage} dari {totalPages}</span>
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  style={{ padding: '0.35rem 0.65rem', fontSize: '0.8rem' }}
+                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={safePage >= totalPages}
+                >
+                  Berikutnya
+                </button>
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -544,6 +596,16 @@ export function Inventory() {
             setAddModalOpen(false)
             load()
             loadHistory()
+          }}
+        />
+      )}
+      {editPart && (
+        <EditSparePartModal
+          part={editPart}
+          onClose={() => setEditPart(null)}
+          onSuccess={() => {
+            setEditPart(null)
+            load()
           }}
         />
       )}

@@ -38,10 +38,13 @@ const STATUS_FILTER_OPTIONS: { value: string; label: string }[] = [
   { value: 'Completed', label: 'Completed' },
 ]
 
+const ROWS_PER_PAGE = 50
+
 export function PermintaanPerbaikan() {
   const [list, setList] = useState<PermintaanPerbaikanItem[]>([])
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('')
+  const [page, setPage] = useState(1)
   const [modalOpen, setModalOpen] = useState(false)
   const [viewWoId, setViewWoId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
@@ -78,6 +81,15 @@ export function PermintaanPerbaikan() {
         (wo.damageType ?? '').toLowerCase().includes(search.toLowerCase())
     )
     .filter((wo) => !statusFilter || wo.status === statusFilter)
+  const totalFiltered = filtered.length
+  const totalPages = Math.max(1, Math.ceil(totalFiltered / ROWS_PER_PAGE))
+  const safePage = Math.min(Math.max(1, page), totalPages)
+  const startIdx = (safePage - 1) * ROWS_PER_PAGE
+  const paginated = filtered.slice(startIdx, startIdx + ROWS_PER_PAGE)
+
+  useEffect(() => {
+    setPage(1)
+  }, [search, statusFilter])
 
   const total = list.length
   const open = list.filter((w) => w.status === 'Open').length
@@ -196,7 +208,7 @@ export function PermintaanPerbaikan() {
               </tr>
             </thead>
             <tbody>
-              {filtered.map((wo) => (
+              {paginated.map((wo) => (
                 <tr key={wo.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
                   <td style={{ padding: '0.75rem' }}>
                     <a href="#" style={{ color: '#3b82f6', fontWeight: 500 }}>{wo.woId}</a>
@@ -339,9 +351,32 @@ export function PermintaanPerbaikan() {
         )}
         {!loading && (
           <div style={{ padding: '0.75rem 1rem', borderTop: '1px solid #f1f5f9', fontSize: '0.85rem', color: '#64748b' }}>
-            {filtered.length > 0
-              ? `Menampilkan 1-${filtered.length} dari ${filtered.length} permintaan perbaikan${statusFilter ? ` (filter: ${STATUS_FILTER_OPTIONS.find((o) => o.value === statusFilter)?.label ?? statusFilter})` : ''}`
+            {totalFiltered > 0
+              ? `Menampilkan ${startIdx + 1}-${startIdx + paginated.length} dari ${totalFiltered} permintaan perbaikan${statusFilter ? ` (filter: ${STATUS_FILTER_OPTIONS.find((o) => o.value === statusFilter)?.label ?? statusFilter})` : ''}`
               : 'Tidak ada permintaan perbaikan yang sesuai filter.'}
+            {totalPages > 1 && (
+              <span style={{ marginLeft: '1rem' }}>
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  style={{ padding: '0.25rem 0.6rem', fontSize: '0.8rem', marginRight: '0.5rem' }}
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  disabled={safePage <= 1}
+                >
+                  Sebelumnya
+                </button>
+                <span style={{ marginRight: '0.5rem' }}>Halaman {safePage} dari {totalPages}</span>
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  style={{ padding: '0.25rem 0.6rem', fontSize: '0.8rem' }}
+                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={safePage >= totalPages}
+                >
+                  Berikutnya
+                </button>
+              </span>
+            )}
           </div>
         )}
       </div>

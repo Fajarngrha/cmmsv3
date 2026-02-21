@@ -148,6 +148,78 @@ inventoryRouter.get('/inventory/spare-parts/history', async (req, res) => {
   }
 })
 
+inventoryRouter.patch('/inventory/spare-parts/:id', async (req, res) => {
+  try {
+    const id = req.params.id
+    const body = req.body as {
+      name?: string
+      spec?: string
+      forMachine?: string
+      category?: string
+      minStock?: number
+      location?: string
+    }
+
+    const updates: string[] = []
+    const params: unknown[] = []
+    let idx = 1
+
+    if (typeof body.name === 'string') {
+      const name = body.name.trim()
+      if (!name) return res.status(400).json({ error: 'Nama spare part wajib diisi.' })
+      updates.push(`name = $${idx++}`)
+      params.push(name)
+    }
+
+    if (typeof body.spec === 'string') {
+      updates.push(`spec = $${idx++}`)
+      params.push(body.spec.trim() || null)
+    }
+
+    if (typeof body.forMachine === 'string') {
+      updates.push(`for_machine = $${idx++}`)
+      params.push(body.forMachine.trim() || null)
+    }
+
+    if (typeof body.category === 'string') {
+      const category = body.category.trim()
+      if (!category) return res.status(400).json({ error: 'Kategori wajib diisi.' })
+      updates.push(`category = $${idx++}`)
+      params.push(category)
+    }
+
+    if (body.minStock !== undefined) {
+      const minStock = typeof body.minStock === 'number' ? body.minStock : Number(body.minStock)
+      if (!Number.isInteger(minStock) || minStock < 0) {
+        return res.status(400).json({ error: 'Min stock harus bilangan bulat >= 0.' })
+      }
+      updates.push(`min_stock = $${idx++}`)
+      params.push(minStock)
+    }
+
+    if (typeof body.location === 'string') {
+      updates.push(`location = $${idx++}`)
+      params.push(body.location.trim())
+    }
+
+    if (updates.length === 0) {
+      return res.status(400).json({ error: 'Tidak ada data yang diubah.' })
+    }
+
+    params.push(id)
+    const result = await query(
+      `UPDATE spare_parts SET ${updates.join(', ')} WHERE id = $${idx} RETURNING *`,
+      params
+    )
+    if (result.rows.length === 0) return res.status(404).json({ error: 'Spare part tidak ditemukan.' })
+
+    res.json(rowToSparePart(result.rows[0]))
+  } catch (e) {
+    console.error(e)
+    res.status(500).json({ error: 'Gagal mengubah data spare part' })
+  }
+})
+
 inventoryRouter.patch('/inventory/spare-parts/:id/issue', async (req, res) => {
   try {
     const id = req.params.id

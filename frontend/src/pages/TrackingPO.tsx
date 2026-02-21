@@ -23,7 +23,7 @@ interface PurchaseOrder {
   status: string
 }
 
-const ROWS_PER_PAGE = 100
+const ROWS_PER_PAGE = 50
 
 function formatIdr(n: number) {
   return 'Rp. ' + new Intl.NumberFormat('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(n)
