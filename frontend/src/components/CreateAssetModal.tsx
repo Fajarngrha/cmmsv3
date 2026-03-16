@@ -47,6 +47,10 @@ export function CreateAssetModal({ onClose, onSuccess }: CreateAssetModalProps) 
       setError('Section wajib dipilih.')
       return
     }
+    if (!installedAtValue) {
+      setError('Bulan & Tahun instalasi wajib dipilih.')
+      return
+    }
     setSubmitting(true)
     fetch(apiUrl('/api/assets'), {
       method: 'POST',
@@ -57,7 +61,7 @@ export function CreateAssetModal({ onClose, onSuccess }: CreateAssetModalProps) 
         section,
         lastPmDate: lastPmDate.trim() || undefined,
         nextPmDate: nextPmDate.trim() || undefined,
-        installedAt: installedAtValue || undefined,
+        installedAt: installedAtValue,
       }),
     })
       .then((r) => {
