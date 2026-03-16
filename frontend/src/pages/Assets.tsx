@@ -169,11 +169,11 @@ export function Assets() {
             <div style={{ fontSize: '1.5rem', fontWeight: 700 }}>{running}</div>
           </div>
           <div className="card" style={{ borderLeft: '4px solid #eab308' }}>
-            <div style={{ fontSize: '0.8rem', color: '#64748b' }}>Needs Attention</div>
+            <div style={{ fontSize: '0.8rem', color: '#64748b' }}>No Stop</div>
             <div style={{ fontSize: '1.5rem', fontWeight: 700 }}>{warning}</div>
           </div>
           <div className="card" style={{ borderLeft: '4px solid #ef4444' }}>
-            <div style={{ fontSize: '0.8rem', color: '#64748b' }}>Out of Service</div>
+            <div style={{ fontSize: '0.8rem', color: '#64748b' }}>Stop</div>
             <div style={{ fontSize: '1.5rem', fontWeight: 700 }}>{breakdown}</div>
           </div>
           <div className="card" style={{ borderLeft: '4px solid #3b82f6' }}>
@@ -240,7 +240,7 @@ export function Assets() {
         <input
           type="search"
           className="input"
-          placeholder="Cari asset ID atau nama..."
+          placeholder="Cari asset atau nama..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           style={{ maxWidth: 280 }}
@@ -276,7 +276,7 @@ export function Assets() {
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem' }}>
             <thead>
               <tr style={{ borderBottom: '2px solid #e2e8f0', textAlign: 'left' }}>
-                <th style={{ padding: '0.75rem' }}>Asset ID</th>
+                <th style={{ padding: '0.75rem' }}>Asset No</th>
                 <th style={{ padding: '0.75rem' }}>Nama</th>
                 <th style={{ padding: '0.75rem' }}>Section</th>
                 <th style={{ padding: '0.75rem' }}>Usia Mesin</th>

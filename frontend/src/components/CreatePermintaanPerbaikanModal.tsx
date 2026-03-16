@@ -6,7 +6,7 @@ interface CreatePermintaanPerbaikanModalProps {
   onSuccess: () => void
 }
 
-const SECTIONS = ['Molding kikis','Molding ZNDC', 'Molding Sekei','Die Casting', 'PM Finishing', 'PM Lathe Cam & Boss','Heat Treatment', 
+const SECTIONS = ['Molding','Molding ZNDC', 'Molding Sekei','Die Casting', 'PM Finishing', 'PM Lathe Cam & Boss','Heat Treatment', 
   '3 Set Assy','Machine 1','Machine 2','Press', 'Pulley Assy', 'Kariseikei', 'QC'] as const
 const MACHINE_STATUSES = ['Running', 'Stopped', 'Breakdown', 'Under Maintenance']
 const OTHER_OPTION_VALUE = '__other__'

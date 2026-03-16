@@ -7,7 +7,8 @@ interface CreateAssetModalProps {
   onSuccess: () => void
 }
 
-const SECTIONS = ['Die Casting', 'Molding', 'Pulley Assy']
+const SECTIONS = ['Molding','Molding ZNDC', 'Molding Sekei','Die Casting', 'PM Finishing', 'PM Lathe Cam & Boss','Heat Treatment', 
+  '3 Set Assy','Machine 1','Machine 2','Press', 'Pulley Assy', 'Kariseikei', 'QC']
 const BULAN_OPTIONS = [
   { value: '', label: '-- Pilih Bulan --' },
   { value: '1', label: 'Januari' }, { value: '2', label: 'Februari' }, { value: '3', label: 'Maret' },

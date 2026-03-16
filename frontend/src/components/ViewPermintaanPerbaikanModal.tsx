@@ -180,8 +180,8 @@ export function ViewPermintaanPerbaikanModal({ permintaanPerbaikanId, onClose, o
       setCloseError('Jenis tindakan wajib dipilih.')
       return
     }
-    if (actionType === 'Replace' && !replacedSpareParts.trim()) {
-      setCloseError('Nama sparepart wajib diisi ketika jenis tindakan Replace.')
+    if (actionType === 'Pergantian' && !replacedSpareParts.trim()) {
+      setCloseError('Nama sparepart wajib diisi ketika jenis tindakan Pergantian.')
       return
     }
     if (!technician.trim()) {
@@ -462,7 +462,7 @@ export function ViewPermintaanPerbaikanModal({ permintaanPerbaikanId, onClose, o
                   ))}
                 </select>
               </div>
-              {actionType === 'Replace' && (
+              {actionType === 'Pergantian' && (
                 <>
                   <div className="form-group">
                     <label className="label" htmlFor="replaced">Nama sparepart *</label>
@@ -471,7 +471,7 @@ export function ViewPermintaanPerbaikanModal({ permintaanPerbaikanId, onClose, o
                       className="input"
                       value={replacedSpareParts}
                       onChange={(e) => setReplacedSpareParts(e.target.value)}
-                      placeholder="e.g. Ball Bearing 6205"
+                      placeholder="e.g. Bearing"
                     />
                   </div>
                   <div className="form-group">
@@ -481,7 +481,7 @@ export function ViewPermintaanPerbaikanModal({ permintaanPerbaikanId, onClose, o
                       className="input"
                       value={replacedPartsSpec}
                       onChange={(e) => setReplacedPartsSpec(e.target.value)}
-                      placeholder="e.g. 25mm ID, 52mm OD"
+                      placeholder="e.g. 6200-LLU"
                     />
                   </div>
                   <div className="form-group">
