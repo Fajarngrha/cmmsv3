@@ -191,8 +191,16 @@ Hanya perlu jika Anda mengubah:
 ### 4.1 Backup (disarankan)
 
 ```bash
-sudo -u postgres pg_dump cmms_dbv3 > ~/backup_cmms_dbv3_$(date +%Y%m%d).sql
+# Gunakan ~postgres/ untuk home directory postgres user (bukan ~ yang mengarah ke /root)
+sudo -u postgres pg_dump -Fc cmms_dbv3 -f ~postgres/backup_cmms_dbv3_$(date +%Y%m%d).dump
 ```
+
+**Alternatif (format SQL plain):**
+```bash
+sudo -u postgres pg_dump cmms_dbv3 > ~postgres/backup_cmms_dbv3_$(date +%Y%m%d).sql
+```
+
+**Catatan:** File backup akan tersimpan di home directory postgres user. Untuk mengaksesnya sebagai root, gunakan path lengkap: `/var/lib/postgresql/backup_cmms_dbv3_*.dump` (atau cek dengan `sudo -u postgres ls -la ~postgres/`).
 
 ### 4.2 Jalankan skema atau migration
 

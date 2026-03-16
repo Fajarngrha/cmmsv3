@@ -42,8 +42,14 @@ Migrasi diberi nama berurut: `001_...`, `002_...`, dan seterusnya. Jalankan **se
 
 1. **Backup** (disarankan untuk production):
    ```bash
+   # Jika menjalankan sebagai user postgres atau dengan sudo -u postgres:
+   sudo -u postgres pg_dump -d cmms_dbv3 -F c -f ~postgres/backup_cmms_$(date +%Y%m%d).dump
+   
+   # Atau jika sudah login sebagai postgres user:
    pg_dump -d cmms_dbv3 -F c -f backup_cmms_$(date +%Y%m%d).dump
    ```
+   
+   **Catatan:** Jangan gunakan `~/` saat pakai `sudo -u postgres` karena `~` akan mengarah ke `/root` dan postgres user tidak punya izin menulis di sana. Gunakan `~postgres/` atau path absolut.
 
 2. **Jalankan file migrasi** (satu per satu, sesuai urutan):
    ```bash

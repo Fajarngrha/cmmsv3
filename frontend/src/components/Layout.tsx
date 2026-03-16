@@ -65,7 +65,7 @@ export function Sidebar({
         <button type="button" className="sidebar-close-mobile" aria-label="Tutup menu" onClick={onClose}>
           ×
         </button>
-        <img src="/logo.png" alt="FID Maintenance System" className="sidebar-logo" />
+        <img src="frontend/Public/logo.png" alt="FID Maintenance System" className="sidebar-logo" />
         <span className="sidebar-title">FID</span>
         <span className="sidebar-subtitle">Maintenance System</span>
       </div>
