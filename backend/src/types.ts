@@ -141,6 +141,7 @@ export interface SparePartMovement {
   partId: string
   partCode: string
   partName: string
+  spec?: string
   type: 'in' | 'out'
   qty: number
   unit: string

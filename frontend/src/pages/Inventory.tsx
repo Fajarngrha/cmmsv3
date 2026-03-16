@@ -24,6 +24,7 @@ interface SparePartMovement {
   partId: string
   partCode: string
   partName: string
+  spec?: string
   type: 'in' | 'out'
   qty: number
   unit: string
@@ -580,7 +581,7 @@ export function Inventory() {
             onClick={() => {
               const columns: CsvColumn<SparePartMovement>[] = [
                 { header: 'Tanggal', getValue: (h) => new Date(h.createdAt).toLocaleString('id-ID') },
-                { header: 'Part Code', key: 'partCode' },
+                { header: 'Spesifikasi', getValue: (h) => h.spec || '—' },
                 { header: 'Nama', key: 'partName' },
                 { header: 'Tipe', getValue: (h) => (h.type === 'in' ? 'Masuk' : 'Keluar') },
                 { header: 'Qty', key: 'qty' },
@@ -623,7 +624,7 @@ export function Inventory() {
           <thead>
             <tr style={{ borderBottom: '2px solid #e2e8f0', textAlign: 'left' }}>
               <th style={{ padding: '0.75rem' }}>Tanggal</th>
-              <th style={{ padding: '0.75rem' }}>Part Code</th>
+              <th style={{ padding: '0.75rem' }}>Spesifikasi</th>
               <th style={{ padding: '0.75rem' }}>Nama</th>
               <th style={{ padding: '0.75rem' }}>Tipe</th>
               <th style={{ padding: '0.75rem' }}>Qty</th>
@@ -645,7 +646,7 @@ export function Inventory() {
                   <td style={{ padding: '0.75rem' }}>
                     {new Date(h.createdAt).toLocaleString('id-ID', { dateStyle: 'short', timeStyle: 'short' })}
                   </td>
-                  <td style={{ padding: '0.75rem', fontWeight: 500 }}>{h.partCode}</td>
+                  <td style={{ padding: '0.75rem' }}>{h.spec || '—'}</td>
                   <td style={{ padding: '0.75rem' }}>{h.partName}</td>
                   <td style={{ padding: '0.75rem' }}>
                     <span

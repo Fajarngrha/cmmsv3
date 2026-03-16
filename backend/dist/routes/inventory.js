@@ -102,13 +102,23 @@ inventoryRouter.post('/inventory/spare-parts/import', async (req, res) => {
 inventoryRouter.get('/inventory/spare-parts/history', async (req, res) => {
     try {
         const type = req.query.type;
-        let sql = `SELECT h.* FROM spare_part_history h ORDER BY h.created_at DESC`;
         let result;
         if (type === 'in' || type === 'out') {
-            result = await query(`SELECT * FROM spare_part_history WHERE type = $1 ORDER BY created_at DESC`, [type]);
+            result = await query(`
+        SELECT h.*, p.spec
+        FROM spare_part_history h
+        LEFT JOIN spare_parts p ON p.id = h.part_id
+        WHERE h.type = $1
+        ORDER BY h.created_at DESC
+        `, [type]);
         }
         else {
-            result = await query('SELECT * FROM spare_part_history ORDER BY created_at DESC');
+            result = await query(`
+        SELECT h.*, p.spec
+        FROM spare_part_history h
+        LEFT JOIN spare_parts p ON p.id = h.part_id
+        ORDER BY h.created_at DESC
+        `);
         }
         res.json(result.rows.map((r) => rowToSparePartMovement(r)));
     }

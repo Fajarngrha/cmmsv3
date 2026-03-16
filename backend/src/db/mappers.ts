@@ -65,6 +65,7 @@ export function rowToSparePartMovement(row: Record<string, unknown>) {
     partId: String(row.part_id),
     partCode: row.part_code,
     partName: row.part_name,
+    spec: row.spec ?? undefined,
     type: row.type as 'in' | 'out',
     qty: Number(row.qty),
     unit: row.unit,

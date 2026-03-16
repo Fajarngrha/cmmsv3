@@ -248,7 +248,7 @@ export function Dashboard() {
       {/* Ringkasan permintaan perbaikan - sama seperti halaman Permintaan perbaikan */}
       <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '1rem', marginBottom: '1.5rem' }}>
         <div className="grid-4" style={{ flex: 1, minWidth: 200 }}>
-          <WoStatBox label="Total WO" value={totalWO} variant="blue" />
+          <WoStatBox label="Total Request" value={totalWO} variant="blue" />
           <WoStatBox label="Open" value={openWO} variant="red" />
           <WoStatBox label="In Progress" value={inProgressWO} variant="blue" />
           <WoStatBox label="Completed" value={completedWO} variant="green" />
