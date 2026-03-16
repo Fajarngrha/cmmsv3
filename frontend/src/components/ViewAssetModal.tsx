@@ -82,11 +82,14 @@ export function ViewAssetModal({ asset, onClose }: ViewAssetModalProps) {
     .filter((wo) => normalizeKey(wo.type || '') === 'pm' || normalizeKey(wo.status || '') === 'pm')
     .sort((a, b) => (b.closedAt || '').localeCompare(a.closedAt || ''))[0]
   const lastPmDate = lastPmWo?.closedAt?.slice(0, 10) || asset.lastPmDate
-  const sparePartsReplaced = workOrders.filter(
-    (wo) =>
-      normalizeKey(wo.actionType || '') === 'replace' &&
-      (Boolean(wo.replacedSpareParts?.trim()) || Boolean(wo.replacedPartsSpec?.trim()))
-  )
+  const sparePartsReplaced = workOrders.filter((wo) => {
+    const hasReplacedInfo =
+      Boolean(wo.replacedSpareParts?.trim()) || Boolean(wo.replacedPartsSpec?.trim()) || wo.replacedPartsQty != null
+    const isCompleted = normalizeKey(wo.status || '') === 'completed'
+    if (!hasReplacedInfo) return false
+    // Tidak tergantung lagi pada nilai actionType, cukup lihat ada data sparepart dan status Completed
+    return isCompleted
+  })
 
   return (
     <div
