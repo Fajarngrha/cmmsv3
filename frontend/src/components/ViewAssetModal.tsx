@@ -47,6 +47,10 @@ const healthLabels: Record<string, string> = {
   Breakdown: 'Out of Service',
 }
 
+function normalizeKey(s: string) {
+  return (s || '').trim().toLowerCase().replace(/\s+/g, ' ')
+}
+
 function formatDateTime(s: string) {
   if (!s) return '—'
   return new Date(s).toLocaleString('id-ID', { dateStyle: 'short', timeStyle: 'short' })
@@ -60,19 +64,29 @@ export function ViewAssetModal({ asset, onClose }: ViewAssetModalProps) {
     fetch(apiUrl('/api/permintaan-perbaikan'))
       .then((r) => r.json())
       .then((data: WorkOrder[]) => {
+        const assetNameKey = normalizeKey(asset.name)
+        const assetIdKey = normalizeKey(asset.assetId)
         const completed = (data || []).filter(
-          (wo) => wo.status === 'Completed' && wo.machineName === asset.name
+          (wo) =>
+            wo.status === 'Completed' &&
+            (normalizeKey(wo.machineName) === assetNameKey || normalizeKey(wo.machineName) === assetIdKey)
         )
         completed.sort((a, b) => (b.closedAt || b.createdAt).localeCompare(a.closedAt || a.createdAt))
         setWorkOrders(completed)
       })
       .catch(() => setWorkOrders([]))
       .finally(() => setLoading(false))
-  }, [asset.name])
+  }, [asset.name, asset.assetId])
 
-  const lastPmWo = workOrders.filter((wo) => wo.type === 'PM').sort((a, b) => (b.closedAt || '').localeCompare(a.closedAt || ''))[0]
+  const lastPmWo = workOrders
+    .filter((wo) => normalizeKey(wo.type || '') === 'pm' || normalizeKey(wo.status || '') === 'pm')
+    .sort((a, b) => (b.closedAt || '').localeCompare(a.closedAt || ''))[0]
   const lastPmDate = lastPmWo?.closedAt?.slice(0, 10) || asset.lastPmDate
-  const sparePartsReplaced = workOrders.filter((wo) => wo.actionType === 'Replace' && (wo.replacedSpareParts || wo.replacedPartsSpec))
+  const sparePartsReplaced = workOrders.filter(
+    (wo) =>
+      normalizeKey(wo.actionType || '') === 'replace' &&
+      (Boolean(wo.replacedSpareParts?.trim()) || Boolean(wo.replacedPartsSpec?.trim()))
+  )
 
   return (
     <div

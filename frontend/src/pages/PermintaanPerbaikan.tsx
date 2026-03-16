@@ -106,7 +106,7 @@ export function PermintaanPerbaikan() {
       <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}>
         <div className="grid-4" style={{ flex: 1, minWidth: 200 }}>
           <StatBox
-            label="Total WO"
+            label="Total Request"
             value={total}
             variant="blue"
             active={statusFilter === ''}

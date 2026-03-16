@@ -37,10 +37,10 @@ export function rowToAsset(row: Record<string, unknown>) {
     name: row.name,
     section: row.section,
     health: row.health,
-    lastPmDate: row.last_pm_date ? String(row.last_pm_date).slice(0, 10) : '',
-    nextPmDate: row.next_pm_date ? String(row.next_pm_date).slice(0, 10) : '',
+    lastPmDate: row.last_pm_date ? toDateString(row.last_pm_date) : '',
+    nextPmDate: row.next_pm_date ? toDateString(row.next_pm_date) : '',
     uptimePercent: Number(row.uptime_percent ?? 100),
-    installedAt: row.installed_at ? String(row.installed_at).slice(0, 10) : undefined,
+    installedAt: row.installed_at ? toDateString(row.installed_at) : undefined,
   }
 }
 
