@@ -4,7 +4,7 @@
  */
 export function hitungUsiaMesin(tanggalInstalasi: string | undefined): string {
   if (!tanggalInstalasi) return '—'
-  const install = new Date(tanggalInstalasi)
+  const install = parseYmdLocalDate(tanggalInstalasi)
   const now = new Date()
   if (isNaN(install.getTime()) || install > now) return '—'
   let bulan = (now.getFullYear() - install.getFullYear()) * 12 + (now.getMonth() - install.getMonth())
@@ -19,7 +19,18 @@ export function hitungUsiaMesin(tanggalInstalasi: string | undefined): string {
 /** Format "YYYY-MM-DD" ke "Bulan Tahun" (e.g. April 2022) */
 export function formatBulanTahunInstalasi(installedAt: string | undefined): string {
   if (!installedAt) return '—'
-  const d = new Date(installedAt)
+  const d = parseYmdLocalDate(installedAt)
   if (isNaN(d.getTime())) return '—'
   return d.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })
+}
+
+function parseYmdLocalDate(input: string): Date {
+  const s = String(input || '').trim()
+  const m = /^(\d{4})-(\d{1,2})-(\d{1,2})/.exec(s)
+  if (!m) return new Date('invalid')
+  const year = Number(m[1])
+  const month = Number(m[2])
+  const day = Number(m[3])
+  if (!Number.isInteger(year) || !Number.isInteger(month) || !Number.isInteger(day)) return new Date('invalid')
+  return new Date(year, month - 1, day)
 }

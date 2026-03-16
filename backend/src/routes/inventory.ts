@@ -140,7 +140,9 @@ inventoryRouter.get('/inventory/spare-parts/history', async (req, res) => {
         `
         SELECT h.*, p.spec
         FROM spare_part_history h
-        LEFT JOIN spare_parts p ON p.id = h.part_id
+        LEFT JOIN spare_parts p
+          ON p.id = h.part_id
+          OR LOWER(p.part_code) = LOWER(h.part_code)
         WHERE h.type = $1
         ORDER BY h.created_at DESC
         `,
@@ -151,7 +153,9 @@ inventoryRouter.get('/inventory/spare-parts/history', async (req, res) => {
         `
         SELECT h.*, p.spec
         FROM spare_part_history h
-        LEFT JOIN spare_parts p ON p.id = h.part_id
+        LEFT JOIN spare_parts p
+          ON p.id = h.part_id
+          OR LOWER(p.part_code) = LOWER(h.part_code)
         ORDER BY h.created_at DESC
         `
       )
