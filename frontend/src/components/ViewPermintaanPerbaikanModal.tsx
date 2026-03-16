@@ -3,8 +3,8 @@ import { apiUrl } from '../api'
 
 const JENIS_TINDAKAN_OPTIONS = [
   'Repair',
-  'Replace',
-  'Adjustment',
+  'Pergantian',
+  'Adjusting',
   'Inspection',
   'Cleaning',
   'Lubricating',

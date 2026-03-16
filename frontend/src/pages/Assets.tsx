@@ -3,7 +3,7 @@ import { apiUrl } from '../api'
 import { CreateAssetModal } from '../components/CreateAssetModal'
 import { ViewAssetModal } from '../components/ViewAssetModal'
 import { hitungUsiaMesin } from '../utils/assetAge'
-import { exportToCsv, parseCsvToObjects, type CsvColumn } from '../utils/exportToCsv'
+import { buildCsvContent, downloadCsv, exportToCsv, parseCsvToObjects, type CsvColumn } from '../utils/exportToCsv'
 
 interface Asset {
   id: string
@@ -31,6 +31,32 @@ export function Assets() {
   const [importMessage, setImportMessage] = useState<{ type: 'ok' | 'err'; text: string } | null>(null)
   const [importing, setImporting] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const handleDownloadTemplate = () => {
+    const today = new Date().toISOString().slice(0, 10)
+    const template = [
+      {
+        'Asset ID': 'AST-001',
+        Nama: 'Contoh Mesin',
+        Section: 'Molding',
+        'Last PM': today,
+        'Next PM': today,
+        Health: 'Running',
+        'Installed At': '2024-01-01',
+      },
+    ]
+    const columns: CsvColumn<(typeof template)[number]>[] = [
+      { header: 'Asset ID', key: 'Asset ID' },
+      { header: 'Nama', key: 'Nama' },
+      { header: 'Section', key: 'Section' },
+      { header: 'Last PM', key: 'Last PM' },
+      { header: 'Next PM', key: 'Next PM' },
+      { header: 'Health', key: 'Health' },
+      { header: 'Installed At', key: 'Installed At' },
+    ]
+    const content = buildCsvContent(template, columns)
+    downloadCsv(content, 'template-import-assets.csv')
+  }
 
   const load = () => {
     fetch(apiUrl('/api/assets'))
@@ -133,7 +159,7 @@ export function Assets() {
     <div className="page">
       <h1 style={{ margin: '0 0 0.25rem', fontSize: '1.5rem' }}>Assets</h1>
       <p style={{ margin: '0 0 1.5rem', color: '#64748b', fontSize: '0.9rem' }}>
-        Monitor asset health and prioritize maintenance activities
+       Monitoring Performa Mesin dan Equipment
       </p>
 
       <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '1rem', marginBottom: '1.5rem' }}>
@@ -167,7 +193,7 @@ export function Assets() {
           className="btn btn-secondary"
           onClick={() => {
             const columns: CsvColumn<Asset>[] = [
-              { header: 'Asset ID', key: 'assetId' },
+              { header: 'Asset No', key: 'assetId' },
               { header: 'Nama', key: 'name' },
               { header: 'Section', key: 'section' },
               { header: 'Usia Mesin', getValue: (a) => hitungUsiaMesin(a.installedAt) },
@@ -179,6 +205,9 @@ export function Assets() {
           }}
         >
           Export to CSV
+        </button>
+        <button type="button" className="btn btn-secondary" onClick={handleDownloadTemplate}>
+          Download Template
         </button>
         <button
           type="button"

@@ -6,8 +6,8 @@ interface CreatePermintaanPerbaikanModalProps {
   onSuccess: () => void
 }
 
-const SECTIONS = ['Molding', 'Die Casting', 'PM Finishing', 'PM Lathe Cam & Boss','Heat Treatment', 
-  '3 Set Assy','Machine 1','Machine 2','Press'] as const
+const SECTIONS = ['Molding kikis','Molding ZNDC', 'Molding Sekei','Die Casting', 'PM Finishing', 'PM Lathe Cam & Boss','Heat Treatment', 
+  '3 Set Assy','Machine 1','Machine 2','Press', 'Pulley Assy', 'Kariseikei', 'QC'] as const
 const MACHINE_STATUSES = ['Running', 'Stopped', 'Breakdown', 'Under Maintenance']
 const OTHER_OPTION_VALUE = '__other__'
 
@@ -129,7 +129,7 @@ export function CreatePermintaanPerbaikanModal({ onClose, onSuccess }: CreatePer
       return
     }
     if (!damageDescription.trim()) {
-      setError('Deskripsi kerusakan wajib diisi.')
+      setError('Gejala wajib diisi.')
       return
     }
     setSubmitting(true)
@@ -307,7 +307,7 @@ export function CreatePermintaanPerbaikanModal({ onClose, onSuccess }: CreatePer
             )}
           </div>
           <div className="form-group">
-            <label className="label" htmlFor="desc">Deskripsi Kerusakan *</label>
+            <label className="label" htmlFor="desc">Gejala Kerusakan *</label>
             <textarea
               id="desc"
               className="textarea"
