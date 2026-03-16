@@ -2,6 +2,18 @@ import { Router } from 'express';
 import { query } from '../db/index.js';
 import { rowToAsset } from '../db/mappers.js';
 export const assetsRouter = Router();
+function normalizeDateString(input, fallback) {
+    const raw = input?.trim();
+    if (!raw)
+        return fallback ?? null;
+    // Jika sudah format YYYY-MM-DD, pakai langsung
+    if (/^\d{4}-\d{2}-\d{2}$/.test(raw))
+        return raw;
+    const d = new Date(raw);
+    if (isNaN(d.getTime()))
+        return fallback ?? null;
+    return d.toISOString().slice(0, 10);
+}
 assetsRouter.get('/assets', async (_, res) => {
     try {
         const result = await query('SELECT * FROM assets ORDER BY id');
@@ -24,14 +36,16 @@ assetsRouter.post('/assets', async (req, res) => {
         const nextNum = (countResult.rows[0]?.c ?? 0) + 1;
         const nextAssetId = body.assetId?.trim() || `AST-${String(nextNum).padStart(3, '0')}`;
         const today = new Date().toISOString().slice(0, 10);
+        const lastPm = normalizeDateString(body.lastPmDate, today);
+        const nextPm = normalizeDateString(body.nextPmDate, today);
         const result = await query(`INSERT INTO assets (asset_id, name, section, health, last_pm_date, next_pm_date, uptime_percent, installed_at)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`, [
             nextAssetId,
             body.name.trim(),
             body.section.trim(),
             health,
-            body.lastPmDate?.trim() || today,
-            body.nextPmDate?.trim() || today,
+            lastPm,
+            nextPm,
             typeof body.uptimePercent === 'number' ? body.uptimePercent : 100,
             body.installedAt?.trim() || null,
         ]);
@@ -58,14 +72,16 @@ assetsRouter.post('/assets/import', async (req, res) => {
             nextNum += 1;
             const health = row.health && ['Running', 'Warning', 'Breakdown'].includes(row.health) ? row.health : 'Running';
             const nextAssetId = row.assetId?.trim() || `AST-${String(nextNum).padStart(3, '0')}`;
+            const lastPm = normalizeDateString(row.lastPmDate, today);
+            const nextPm = normalizeDateString(row.nextPmDate, today);
             const result = await query(`INSERT INTO assets (asset_id, name, section, health, last_pm_date, next_pm_date, uptime_percent, installed_at)
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`, [
                 nextAssetId,
                 row.name.trim(),
                 row.section.trim(),
                 health,
-                row.lastPmDate?.trim() || today,
-                row.nextPmDate?.trim() || today,
+                lastPm,
+                nextPm,
                 typeof row.uptimePercent === 'number' ? row.uptimePercent : 100,
                 row.installedAt?.trim() || null,
             ]);
