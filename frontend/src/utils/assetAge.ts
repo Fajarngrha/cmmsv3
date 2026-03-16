@@ -27,10 +27,16 @@ export function formatBulanTahunInstalasi(installedAt: string | undefined): stri
 function parseYmdLocalDate(input: string): Date {
   const s = String(input || '').trim()
   const m = /^(\d{4})-(\d{1,2})-(\d{1,2})/.exec(s)
-  if (!m) return new Date('invalid')
-  const year = Number(m[1])
-  const month = Number(m[2])
-  const day = Number(m[3])
-  if (!Number.isInteger(year) || !Number.isInteger(month) || !Number.isInteger(day)) return new Date('invalid')
-  return new Date(year, month - 1, day)
+  if (m) {
+    const year = Number(m[1])
+    const month = Number(m[2])
+    const day = Number(m[3])
+    if (!Number.isInteger(year) || !Number.isInteger(month) || !Number.isInteger(day)) return new Date('invalid')
+    return new Date(year, month - 1, day)
+  }
+
+  // Fallback untuk format lain (mis. "Mon Mar 16 2026 ...")
+  const d = new Date(s)
+  if (isNaN(d.getTime())) return new Date('invalid')
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate())
 }
