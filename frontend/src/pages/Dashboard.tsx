@@ -12,9 +12,6 @@ import {
   ResponsiveContainer,
   Bar,
   ComposedChart,
-  PieChart,
-  Pie,
-  Cell,
 } from 'recharts'
 import { ViewPermintaanPerbaikanModal } from '../components/ViewPermintaanPerbaikanModal'
 
@@ -65,11 +62,6 @@ interface UpcomingPM {
   scheduledDate: string
   assignedTo: string
 }
-
-
-
-const PIE_COLORS = ['#22c55e', '#3b82f6', '#f97316', '#ef4444']
-
 const MONTH_LABELS: Record<string, string> = {
   '01': 'Jan', '02': 'Feb', '03': 'Mar', '04': 'Apr', '05': 'Mei', '06': 'Jun',
   '07': 'Jul', '08': 'Agu', '09': 'Sep', '10': 'Okt', '11': 'Nov', '12': 'Des',
@@ -173,28 +165,6 @@ export function Dashboard() {
     [filteredPO]
   )
 
-  const woStatusFromFiltered = useMemo(
-    () => ({
-      completed: filteredWorkOrders.filter((w) => w.status === 'Completed').length,
-      inProgress: filteredWorkOrders.filter((w) => w.status === 'In Progress').length,
-      pending: filteredWorkOrders.filter((w) => w.status === 'Pending').length,
-      open: filteredWorkOrders.filter((w) => w.status === 'Open').length,
-    }),
-    [filteredWorkOrders]
-  )
-
-  const pieData = useMemo(() => {
-    const { completed, inProgress, pending, open } = woStatusFromFiltered
-    const total = completed + inProgress + pending + open
-    if (total === 0) return []
-    return [
-      { name: 'Completed', value: Math.round((completed / total) * 100), color: PIE_COLORS[0] },
-      { name: 'In Progress', value: Math.round((inProgress / total) * 100), color: PIE_COLORS[1] },
-      { name: 'Pending', value: Math.round((pending / total) * 100), color: PIE_COLORS[2] },
-      { name: 'Open', value: Math.round((open / total) * 100), color: PIE_COLORS[3] },
-    ]
-  }, [woStatusFromFiltered])
-
   const trendFromFiltered = useMemo(() => {
     const byMonth: Record<string, { reactive: number; preventive: number }> = {}
     filteredWorkOrders.forEach((wo) => {
@@ -230,6 +200,29 @@ export function Dashboard() {
     return entries.map((e) => {
       cum += e.hours
       return { cause: e.cause, hours: e.hours, cumulativePercent: total > 0 ? Math.round((cum / total) * 100) : 0 }
+    })
+  }, [filteredWorkOrders])
+
+  const paretoMachineFrequencyFromFiltered = useMemo(() => {
+    const byMachine: Record<string, number> = {}
+    filteredWorkOrders.forEach((wo) => {
+      const machine = wo.machineName?.trim() || 'Lainnya'
+      byMachine[machine] = (byMachine[machine] ?? 0) + 1
+    })
+
+    const entries = Object.entries(byMachine)
+      .map(([machine, frequency]) => ({ machine, frequency }))
+      .sort((a, b) => b.frequency - a.frequency)
+
+    let cum = 0
+    const total = entries.reduce((s, e) => s + e.frequency, 0)
+    return entries.map((e) => {
+      cum += e.frequency
+      return {
+        machine: e.machine,
+        frequency: e.frequency,
+        cumulativePercent: total > 0 ? Math.round((cum / total) * 100) : 0,
+      }
     })
   }, [filteredWorkOrders])
 
@@ -288,7 +281,7 @@ export function Dashboard() {
           sub="Sesuai filter (permintaan perbaikan In Progress)"
         />
         <div className="card">
-          <h3 style={{ margin: '0 0 0.75rem', fontSize: '0.95rem' }}>Upcoming PM Schedule</h3>
+          <h3 style={{ margin: '0 0 0.75rem', fontSize: '0.95rem' }}>Jadwal Rencana Preventive Maintenance</h3>
           <p style={{ margin: '0 0 0.5rem', fontSize: '0.8rem', color: '#64748b' }}>
             Preventive Maintenance (jadwal terdekat)
           </p>
@@ -301,9 +294,9 @@ export function Dashboard() {
                   <tr style={{ borderBottom: '1px solid #e2e8f0', textAlign: 'left' }}>
                     <th style={{ padding: '0.4rem 0.5rem' }}>PM ID</th>
                     <th style={{ padding: '0.4rem 0.5rem' }}>Asset</th>
-                    <th style={{ padding: '0.4rem 0.5rem' }}>Activity</th>
-                    <th style={{ padding: '0.4rem 0.5rem' }}>Scheduled Date</th>
-                    <th style={{ padding: '0.4rem 0.5rem' }}>Assigned To</th>
+                    <th style={{ padding: '0.4rem 0.5rem' }}>Actifitas</th>
+                    <th style={{ padding: '0.4rem 0.5rem' }}>Scheduled</th>
+                    <th style={{ padding: '0.4rem 0.5rem' }}>Pic</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -323,68 +316,55 @@ export function Dashboard() {
         </div>
       </div>
 
-      {/* Charts kiri | Status Permintaan perbaikan kanan */}
-      <div className="dashboard-with-sidebar">
-        <div className="dashboard-left" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-            <div className="card">
-              <h3 style={{ margin: '0 0 1rem', fontSize: '1rem' }}>Trend Maintenance (Monthly)</h3>
-              <ResponsiveContainer width="100%" height={280}>
-                <LineChart data={trendFromFiltered} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                  <XAxis dataKey="month" tick={{ fontSize: 12 }} />
-                  <YAxis tick={{ fontSize: 12 }} />
-                  <Tooltip />
-                  <Legend />
-                  <Line type="monotone" dataKey="reactiveWOs" name="Reactive WOs" stroke="#f97316" strokeWidth={2} dot={{ r: 4 }} />
-                  <Line type="monotone" dataKey="preventiveWOs" name="Preventive WOs" stroke="#22c55e" strokeWidth={2} dot={{ r: 4 }} />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-            <div className="card">
-              <h3 style={{ margin: '0 0 1rem', fontSize: '1rem' }}>Downtime (Pareto)</h3>
-              <ResponsiveContainer width="100%" height={280}>
-                <ComposedChart data={paretoFromFiltered} margin={{ top: 5, right: 50, left: 0, bottom: 5 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                  <XAxis dataKey="cause" tick={{ fontSize: 12 }} />
-                  <YAxis yAxisId="left" tick={{ fontSize: 12 }} label={{ value: 'Hours', angle: -90, position: 'insideLeft' }} />
-                  <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 12 }} label={{ value: 'Cumulative %', angle: 90, position: 'insideRight' }} />
-                  <Tooltip />
-                  <Legend />
-                  <Bar yAxisId="left" dataKey="hours" name="Downtime Hours" fill="#3b82f6" radius={[4, 4, 0, 0]} />
-                  <Line yAxisId="right" type="monotone" dataKey="cumulativePercent" name="Cumulative %" stroke="#f97316" strokeWidth={2} dot={{ r: 4 }} />
-                </ComposedChart>
-              </ResponsiveContainer>
-            </div>
+      {/* Charts */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+        <div className="grid-3">
+          <div className="card">
+            <h3 style={{ margin: '0 0 1rem', fontSize: '1rem' }}>Trend Maintenance (Monthly)</h3>
+            <ResponsiveContainer width="100%" height={280}>
+              <LineChart data={trendFromFiltered} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                <XAxis dataKey="month" tick={{ fontSize: 12 }} />
+                <YAxis tick={{ fontSize: 12 }} />
+                <Tooltip />
+                <Legend />
+                <Line type="monotone" dataKey="reactiveWOs" name="Reactive WOs" stroke="#f97316" strokeWidth={2} dot={{ r: 4 }} />
+                <Line type="monotone" dataKey="preventiveWOs" name="Preventive WOs" stroke="#22c55e" strokeWidth={2} dot={{ r: 4 }} />
+              </LineChart>
+            </ResponsiveContainer>
           </div>
-        </div>
 
-        <div className="dashboard-sidebar" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          {pieData.length > 0 && (
-            <div className="card">
-              <h3 style={{ margin: '0 0 0.75rem', fontSize: '0.95rem' }}>Status Permintaan perbaikan</h3>
-              <ResponsiveContainer width="100%" height={180}>
-                <PieChart>
-                  <Pie
-                    data={pieData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={40}
-                    outerRadius={70}
-                    paddingAngle={2}
-                    dataKey="value"
-                    nameKey="name"
-                    label={({ name, value }) => `${name} ${value}%`}
-                  >
-                    {pieData.map((entry) => (
-                      <Cell key={entry.name} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip formatter={(value: number) => [`${value}%`, '']} />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-          )}
+          <div className="card">
+            <h3 style={{ margin: '0 0 1rem', fontSize: '1rem' }}>Grafik Pareto Downtime Kerusakan</h3>
+            <ResponsiveContainer width="100%" height={280}>
+              <ComposedChart data={paretoFromFiltered} margin={{ top: 5, right: 50, left: 0, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                <XAxis dataKey="cause" tick={{ fontSize: 12 }} />
+                <YAxis yAxisId="left" tick={{ fontSize: 12 }} label={{ value: 'Hours', angle: -90, position: 'insideLeft' }} />
+                <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 12 }} label={{ value: 'Cumulative %', angle: 90, position: 'insideRight' }} />
+                <Tooltip />
+                <Legend />
+                <Bar yAxisId="left" dataKey="hours" name="Downtime Hours" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                <Line yAxisId="right" type="monotone" dataKey="cumulativePercent" name="Cumulative %" stroke="#f97316" strokeWidth={2} dot={{ r: 4 }} />
+              </ComposedChart>
+            </ResponsiveContainer>
+          </div>
+
+          <div className="card">
+            <h3 style={{ margin: '0 0 1rem', fontSize: '1rem' }}>Grafik Pareto Downtime Machine</h3>
+            <ResponsiveContainer width="100%" height={280}>
+              <ComposedChart data={paretoMachineFrequencyFromFiltered} margin={{ top: 5, right: 50, left: 0, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                <XAxis dataKey="machine" tick={{ fontSize: 12 }} />
+                <YAxis yAxisId="left" tick={{ fontSize: 12 }} label={{ value: 'Freq', angle: -90, position: 'insideLeft' }} />
+                <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 12 }} label={{ value: 'Cumulative %', angle: 90, position: 'insideRight' }} />
+                <Tooltip />
+                <Legend />
+                <Bar yAxisId="left" dataKey="frequency" name="Frekuensi" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                <Line yAxisId="right" type="monotone" dataKey="cumulativePercent" name="Cumulative %" stroke="#f97316" strokeWidth={2} dot={{ r: 4 }} />
+              </ComposedChart>
+            </ResponsiveContainer>
+          </div>
         </div>
       </div>
 

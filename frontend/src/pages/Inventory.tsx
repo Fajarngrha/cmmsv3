@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 import { apiUrl } from '../api'
 import { AddSparePartModal } from '../components/AddSparePartModal'
@@ -119,8 +119,6 @@ export function Inventory() {
     }
   }, [actionMenuOpenId])
 
-  const categories = [...new Set(parts.map((p) => p.category))].sort()
-
   const handleImportFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     e.target.value = ''
@@ -183,7 +181,7 @@ export function Inventory() {
       p.name.toLowerCase().includes(search.toLowerCase()) ||
       (p.spec ?? '').toLowerCase().includes(search.toLowerCase()) ||
       (p.forMachine ?? '').toLowerCase().includes(search.toLowerCase())
-    const isLowStock = p.stock <= p.minStock
+    const isLowStock = p.stock < p.minStock
     const matchStatus =
       stockStatusFilter === 'all' ||
       (stockStatusFilter === 'ok' && !isLowStock) ||
@@ -200,14 +198,33 @@ export function Inventory() {
     setPage(1)
   }, [search, stockStatusFilter])
 
-  const chartData = categories.map((cat) => {
-    const items = parts.filter((p) => p.category === cat)
-    const totalStock = items.reduce((s, p) => s + p.stock, 0)
-    const lowStock = items.filter((p) => p.stock <= p.minStock).length
-    return { category: cat, stock: totalStock, lowStock, count: items.length }
-  })
+  const mostIssuedPartsData = useMemo(() => {
+    const byPart: Record<string, { partName: string; partCode: string; issuedQty: number; issuedCount: number }> = {}
 
-  const lowStockCount = parts.filter((p) => p.stock <= p.minStock).length
+    history
+      .filter((h) => h.type === 'out')
+      .forEach((h) => {
+        const key = h.partId || h.partCode || h.partName
+        if (!byPart[key]) {
+          byPart[key] = { partName: h.partName, partCode: h.partCode, issuedQty: 0, issuedCount: 0 }
+        }
+        byPart[key].issuedQty += Number(h.qty) || 0
+        byPart[key].issuedCount += 1
+      })
+
+    return Object.values(byPart)
+      .sort((a, b) => b.issuedQty - a.issuedQty)
+      .slice(0, 12)
+      .map((p) => ({
+        part: p.partName.length > 18 ? `${p.partName.slice(0, 18)}…` : p.partName,
+        issuedQty: p.issuedQty,
+        issuedCount: p.issuedCount,
+        partCode: p.partCode,
+        fullName: p.partName,
+      }))
+  }, [history])
+
+  const lowStockCount = parts.filter((p) => p.stock < p.minStock).length
   const totalHistory = history.length
   const historyTotalPages = Math.max(1, Math.ceil(totalHistory / HISTORY_ROWS_PER_PAGE))
   const safeHistoryPage = Math.min(Math.max(1, historyPage), historyTotalPages)
@@ -244,16 +261,16 @@ export function Inventory() {
     <div className="page">
       <h1 style={{ margin: '0 0 0.25rem', fontSize: '1.5rem' }}>Spare Parts Inventory</h1>
       <p style={{ margin: '0 0 1.5rem', color: '#64748b', fontSize: '0.9rem' }}>
-        Monitor stock levels to avoid delays in permintaan perbaikan
+      Control Level Stock Sparepart untuk mencegah keterlambatan perbaikan mesin
       </p>
 
       <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '1rem', marginBottom: '1.5rem' }}>
         <div className="card" style={{ borderLeft: '4px solid #3b82f6' }}>
-          <div style={{ fontSize: '0.8rem', color: '#64748b' }}>Total Part Types</div>
+          <div style={{ fontSize: '0.8rem', color: '#64748b' }}>Total Sparepart</div>
           <div style={{ fontSize: '1.5rem', fontWeight: 700 }}>{parts.length}</div>
         </div>
         <div className="card" style={{ borderLeft: '4px solid #ef4444' }}>
-          <div style={{ fontSize: '0.8rem', color: '#64748b' }}>Low Stock Items</div>
+          <div style={{ fontSize: '0.8rem', color: '#64748b' }}>Minimum Stock</div>
           <div style={{ fontSize: '1.5rem', fontWeight: 700 }}>{lowStockCount}</div>
         </div>
         <input
@@ -277,7 +294,7 @@ export function Inventory() {
               { header: 'Min Stock', key: 'minStock' },
               { header: 'Unit', key: 'unit' },
               { header: 'Location', key: 'location' },
-              { header: 'Status', getValue: (p) => (p.stock <= p.minStock ? 'Low Stock' : 'OK') },
+              { header: 'Status', getValue: (p) => (p.stock < p.minStock ? 'Low Stock' : 'OK') },
             ]
             exportToCsv(filtered, columns, `inventory-spare-parts-${new Date().toISOString().slice(0, 10)}.csv`)
           }}
@@ -318,15 +335,25 @@ export function Inventory() {
       </p>
 
       <div className="card" style={{ marginBottom: '1.5rem' }}>
-        <h3 style={{ margin: '0 0 1rem', fontSize: '1rem' }}>Stock by Category</h3>
+        <h3 style={{ margin: '0 0 1rem', fontSize: '1rem' }}>Grafik Penggunaan Sparepart</h3>
         <ResponsiveContainer width="100%" height={280}>
-          <BarChart data={chartData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
+          <BarChart data={mostIssuedPartsData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-            <XAxis dataKey="category" tick={{ fontSize: 12 }} />
+            <XAxis dataKey="part" tick={{ fontSize: 12 }} interval={0} angle={-10} textAnchor="end" height={60} />
             <YAxis tick={{ fontSize: 12 }} />
-            <Tooltip />
+            <Tooltip
+              formatter={(value: number, name: string) => {
+                if (name === 'issuedQty') return [value, 'Qty Keluar']
+                if (name === 'issuedCount') return [value, 'Frekuensi']
+                return [value, name]
+              }}
+              labelFormatter={(_, payload) => {
+                const p = payload?.[0]?.payload
+                return p?.fullName ? `${p.fullName} (${p.partCode})` : ''
+              }}
+            />
             <Legend />
-            <Bar dataKey="stock" name="Total Stock" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+            <Bar dataKey="issuedQty" name="Qty Keluar" fill="#3b82f6" radius={[4, 4, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </div>
@@ -374,7 +401,7 @@ export function Inventory() {
             </thead>
             <tbody>
               {paginated.map((p) => {
-                const isLow = p.stock <= p.minStock
+                const isLow = p.stock < p.minStock
                 return (
                   <tr key={p.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
                     <td style={{ padding: '0.75rem' }}>

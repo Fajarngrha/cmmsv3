@@ -52,7 +52,7 @@ export function PreventiveMaintenance() {
         ? 'yellow'
         : 'red'
     : 'green'
-  const zoneLabel = pmZone === 'green' ? 'On Track' : pmZone === 'yellow' ? 'Warning' : 'Needs Attention'
+  const zoneLabel = pmZone === 'green' ? 'Good' : pmZone === 'yellow' ? 'Warning' : 'Critical'
   const totalFiltered = upcomingPM.length
   const totalPages = Math.max(1, Math.ceil(totalFiltered / ROWS_PER_PAGE))
   const safePage = Math.min(Math.max(1, page), totalPages)
@@ -67,7 +67,7 @@ export function PreventiveMaintenance() {
     <div className="page">
       <h1 style={{ margin: '0 0 0.25rem', fontSize: '1.5rem' }}>Preventive Maintenance</h1>
       <p style={{ margin: '0 0 1.5rem', color: '#64748b', fontSize: '0.9rem' }}>
-        Plan and track PM schedules, manpower, and compliance
+        Monitoring Jadwal Rencana Preventive Maintenance
       </p>
 
       <div className="grid-4" style={{ marginBottom: '1.5rem' }}>
@@ -77,7 +77,7 @@ export function PreventiveMaintenance() {
             borderLeft: `4px solid ${pmZone === 'green' ? '#22c55e' : pmZone === 'yellow' ? '#eab308' : '#ef4444'}`,
           }}
         >
-          <div style={{ fontSize: '0.8rem', color: '#64748b' }}>PM Compliance</div>
+          <div style={{ fontSize: '0.8rem', color: '#64748b' }}>Ratio Pencapaian PM</div>
           <div style={{ fontSize: '1.5rem', fontWeight: 700 }}>{kpis?.pmCompliance ?? '—'}%</div>
           <span
             className="badge"
@@ -92,7 +92,7 @@ export function PreventiveMaintenance() {
           </span>
         </div>
         <div className="card" style={{ borderLeft: '4px solid #3b82f6' }}>
-          <div style={{ fontSize: '0.8rem', color: '#64748b' }}>Upcoming This Week</div>
+          <div style={{ fontSize: '0.8rem', color: '#64748b' }}>PM Minggu ini</div>
           <div style={{ fontSize: '1.5rem', fontWeight: 700 }}>{upcomingPM.length}</div>
         </div>
       </div>
@@ -120,7 +120,7 @@ export function PreventiveMaintenance() {
       </div>
 
       <div className="card">
-        <h3 style={{ margin: '0 0 1rem', fontSize: '1rem' }}>Upcoming PM Schedule</h3>
+        <h3 style={{ margin: '0 0 1rem', fontSize: '1rem' }}>Jadwal Rencana Preventive Maintenance</h3>
         {loading ? (
           <p style={{ padding: '1rem 0', color: '#64748b' }}>Loading...</p>
         ) : (
@@ -130,8 +130,8 @@ export function PreventiveMaintenance() {
                 <th style={{ padding: '0.75rem' }}>PM ID</th>
                 <th style={{ padding: '0.75rem' }}>Asset</th>
                 <th style={{ padding: '0.75rem' }}>Activity</th>
-                <th style={{ padding: '0.75rem' }}>Scheduled Date</th>
-                <th style={{ padding: '0.75rem' }}>Assigned To</th>
+                <th style={{ padding: '0.75rem' }}>Tanggal</th>
+                <th style={{ padding: '0.75rem' }}>Pic</th>
                 <th style={{ padding: '0.75rem' }}>Actions</th>
               </tr>
             </thead>

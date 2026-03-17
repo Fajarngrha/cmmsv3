@@ -8,7 +8,7 @@ interface CreatePermintaanPerbaikanModalProps {
 
 const SECTIONS = ['Molding','Molding ZNDC', 'Molding Sekei','Die Casting', 'PM Finishing', 'PM Lathe Cam & Boss','Heat Treatment', 
   '3 Set Assy','Machine 1','Machine 2','Press', 'Pulley Assy', 'Kariseikei', 'QC'] as const
-const MACHINE_STATUSES = ['Running', 'Stopped', 'Breakdown', 'Under Maintenance']
+const MACHINE_STATUSES = ['Running', 'Stopped', 'Preventive Maintenance']
 const OTHER_OPTION_VALUE = '__other__'
 
 const SECTION_MACHINES: Record<string, { names: string[]; brands: string[] }> = {
@@ -147,7 +147,6 @@ export function CreatePermintaanPerbaikanModal({ onClose, onSuccess }: CreatePer
     })
       .then((r) => {
         if (!r.ok) throw new Error('Gagal membuat permintaan perbaikan')
-        return r.json()
       })
       .then(() => onSuccess())
       .catch(() => setError('Gagal membuat permintaan perbaikan. Silakan coba lagi.'))
