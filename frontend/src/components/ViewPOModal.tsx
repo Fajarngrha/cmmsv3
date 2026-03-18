@@ -26,6 +26,24 @@ interface ViewPOModalProps {
 
 import { PO_STATUS_OPTIONS } from '../utils/poStatus'
 
+async function safeReadJson<T = unknown>(r: Response): Promise<T | null> {
+  const ct = r.headers.get('content-type') || ''
+  if (ct.includes('application/json')) {
+    try {
+      return (await r.json()) as T
+    } catch {
+      return null
+    }
+  }
+  try {
+    const text = await r.text()
+    if (!text.trim()) return null
+    return JSON.parse(text) as T
+  } catch {
+    return null
+  }
+}
+
 function formatIdr(n: number) {
   return 'Rp. ' + new Intl.NumberFormat('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(n)
 }
@@ -41,9 +59,11 @@ export function ViewPOModal({ poId, onClose, onSuccess }: ViewPOModalProps) {
 
   useEffect(() => {
     fetch(apiUrl(`/api/purchase-orders/${poId}`))
-      .then((r) => {
+      .then(async (r) => {
         if (!r.ok) throw new Error('PO tidak ditemukan')
-        return r.json()
+        const data = await safeReadJson<PurchaseOrder>(r)
+        if (!data) throw new Error('PO tidak ditemukan')
+        return data
       })
       .then((data) => {
         setPo(data)
@@ -69,9 +89,13 @@ export function ViewPOModal({ poId, onClose, onSuccess }: ViewPOModalProps) {
         noQuotation: noQuotation.trim(),
       }),
     })
-      .then((r) => {
-        if (!r.ok) return r.json().then((e) => { throw new Error(e.error || 'Gagal menyimpan') })
-        return r.json()
+      .then(async (r) => {
+        if (!r.ok) {
+          const e = await safeReadJson<{ error?: string }>(r)
+          throw new Error(e?.error || 'Gagal menyimpan')
+        }
+        await safeReadJson(r)
+        return true
       })
       .then(() => onSuccess())
       .catch((err) => setError(err.message || 'Gagal menyimpan.'))

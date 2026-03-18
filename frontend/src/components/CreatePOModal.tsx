@@ -14,12 +14,31 @@ interface PoItemRow {
   qty: number | ''
 }
 
-const KATEGORI_OPTIONS: { value: 'Preventive' | 'Sparepart' | 'Breakdown/Repair'; label: string }[] = [
-  { value: 'Preventive', label: 'Preventive' },
+const KATEGORI_OPTIONS: { value: 'Supplies' | 'Sparepart' | 'Service & Repair'; label: string }[] = [
+  { value: 'Supplies', label: 'Supplies' },
   { value: 'Sparepart', label: 'Sparepart' },
-  { value: 'Breakdown/Repair', label: 'Breakdown/Repair' },
+  { value: 'Service & Repair', label: 'Service & Repair' },
 ]
 import { PO_STATUS_OPTIONS, type POStatusValue } from '../utils/poStatus'
+
+async function safeReadJson<T = unknown>(r: Response): Promise<T | null> {
+  const ct = r.headers.get('content-type') || ''
+  if (ct.includes('application/json')) {
+    try {
+      return (await r.json()) as T
+    } catch {
+      return null
+    }
+  }
+  // Backend kadang mengembalikan body kosong (atau text) meskipun sukses.
+  try {
+    const text = await r.text()
+    if (!text.trim()) return null
+    return JSON.parse(text) as T
+  } catch {
+    return null
+  }
+}
 
 function generateRowId() {
   return `row-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
@@ -40,7 +59,7 @@ export function CreatePOModal({ onClose, onSuccess }: CreatePOModalProps) {
   const [mesin, setMesin] = useState('')
   const [noQuotation, setNoQuotation] = useState('')
   const [supplier, setSupplier] = useState('')
-  const [kategori, setKategori] = useState<'Preventive' | 'Sparepart' | 'Breakdown/Repair'>('Sparepart')
+  const [kategori, setKategori] = useState<'Supplies' | 'Sparepart' | 'Service & Repair'>('Sparepart')
   const [status, setStatus] = useState<POStatusValue>('Tahap 1')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
@@ -96,9 +115,13 @@ export function CreatePOModal({ onClose, onSuccess }: CreatePOModalProps) {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(body),
-        }).then((r) => {
-          if (!r.ok) return r.json().then((e: { error?: string }) => { throw new Error(e.error || 'Gagal menambah PO') })
-          return r.json()
+        }).then(async (r) => {
+          if (!r.ok) {
+            const e = await safeReadJson<{ error?: string }>(r)
+            throw new Error(e?.error || 'Gagal menambah PO')
+          }
+          await safeReadJson(r)
+          return true
         })
       )
     )
@@ -291,7 +314,7 @@ export function CreatePOModal({ onClose, onSuccess }: CreatePOModalProps) {
                 id="po-kategori"
                 className="select"
                 value={kategori}
-                onChange={(e) => setKategori(e.target.value as 'Preventive' | 'Sparepart' | 'Breakdown/Repair')}
+                onChange={(e) => setKategori(e.target.value as 'Supplies' | 'Sparepart' | 'Service & Repair')}
               >
                 {KATEGORI_OPTIONS.map((opt) => (
                   <option key={opt.value} value={opt.value}>{opt.label}</option>

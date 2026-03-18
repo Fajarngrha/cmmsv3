@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { apiUrl } from '../api'
 import { CreatePOModal } from '../components/CreatePOModal'
 import { HistoryPOModal } from '../components/HistoryPOModal'
@@ -65,6 +65,24 @@ export function TrackingPO() {
     return matchSearch && matchStatus
   })
 
+  const completedOnly = useMemo(() => filtered.filter((po) => po.status === 'Tahap 7'), [filtered])
+
+  const totalByKategori = useMemo(() => {
+    const by: Record<string, number> = {}
+    completedOnly.forEach((po) => {
+      const key = (po.kategori ?? '').trim() || 'Lainnya'
+      by[key] = (by[key] ?? 0) + (Number(po.totalHarga) || 0)
+    })
+    return Object.entries(by)
+      .map(([kategori, totalHarga]) => ({ kategori, totalHarga }))
+      .sort((a, b) => b.totalHarga - a.totalHarga)
+  }, [completedOnly])
+
+  const grandTotalCompleted = useMemo(
+    () => completedOnly.reduce((sum, po) => sum + (Number(po.totalHarga) || 0), 0),
+    [completedOnly]
+  )
+
   const totalFiltered = filtered.length
   const totalPages = Math.max(1, Math.ceil(totalFiltered / ROWS_PER_PAGE))
   const safePage = Math.min(Math.max(1, page), totalPages)
@@ -81,6 +99,35 @@ export function TrackingPO() {
       <p style={{ margin: '0 0 1.5rem', color: '#64748b', fontSize: '0.9rem' }}>
         Lacak proses order barang (Purchase Order)
       </p>
+
+      <div className="card" style={{ marginBottom: '1rem' }}>
+        <h3 style={{ margin: '0 0 0.75rem', fontSize: '1rem' }}>Ringkasan Total Harga (Tahap 7 saja)</h3>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem', alignItems: 'stretch' }}>
+          <div className="card" style={{ flex: '1 1 220px', borderLeft: '4px solid #22c55e' }}>
+            <div style={{ fontSize: '0.8rem', color: '#64748b' }}>Grand Total</div>
+            <div style={{ fontSize: '1.5rem', fontWeight: 700, whiteSpace: 'nowrap' }}>{formatIdr(grandTotalCompleted)}</div>
+            <div style={{ marginTop: 4, fontSize: '0.8rem', color: '#64748b' }}>
+              Dari {completedOnly.length} item PO (sesuai filter)
+            </div>
+          </div>
+          <div className="card" style={{ flex: '2 1 420px' }}>
+            {totalByKategori.length === 0 ? (
+              <div style={{ color: '#64748b', fontSize: '0.9rem' }}>
+                Belum ada PO dengan status <strong>Tahap 7</strong> untuk dihitung.
+              </div>
+            ) : (
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 8 }}>
+                {totalByKategori.map((row) => (
+                  <div key={row.kategori} style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
+                    <span style={{ fontWeight: 600 }}>{row.kategori}</span>
+                    <span style={{ whiteSpace: 'nowrap' }}>{formatIdr(row.totalHarga)}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
 
       <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
@@ -122,6 +169,7 @@ export function TrackingPO() {
               { header: 'Qty', key: 'qty' },
               { header: 'Mesin', getValue: (po) => po.mesin ?? '—' },
               { header: 'Supplier', getValue: (po) => po.supplier ?? '—' },
+              { header: 'Kategori', getValue: (po) => po.kategori ?? '—' },
               { header: 'Status', getValue: (po) => getPOStatusLabel(po.status) },
             ]
             exportToCsv(filtered, columns, `tracking-po-${new Date().toISOString().slice(0, 10)}.csv`)

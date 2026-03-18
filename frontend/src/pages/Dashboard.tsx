@@ -72,12 +72,44 @@ interface PurchaseOrder {
   tanggal: string
   totalHarga: number
   mesin?: string
+  status?: string
+  kategori?: string
 }
 
 interface Asset {
   id: string
   name: string
   section: string
+}
+
+type POCategory = 'Supplies' | 'Sparepart' | 'Service & Repair'
+
+// Budget PO per bulan (IDR).
+// Ubah angka di sini untuk mengatur budget tiap bulan.
+const DEFAULT_PO_BUDGET_IDR: Record<POCategory, number> = {
+  Supplies: 150_000,
+  Sparepart: 649_718_000,
+  'Service & Repair': 1_683_641_000,
+}
+
+// Override budget spesifik per bulan (format key: "YYYY-MM")
+const PO_BUDGET_BY_MONTH_IDR: Record<string, Partial<Record<POCategory, number>>> = {
+  '2026-03': { Supplies: 150_000, Sparepart: 649_718_000, 'Service & Repair': 1_683_641_000 },
+  '2026-04': { Supplies: 150_000, Sparepart: 600_000_000, 'Service & Repair': 1_683_641_000 },
+  '2026-05': { Supplies: 150_000, Sparepart: 600_000_000, 'Service & Repair': 1_683_641_000 },
+}
+
+function formatIdr(n: number) {
+  return 'Rp. ' + new Intl.NumberFormat('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(n)
+}
+
+function getBudgetForMonth(monthKey: string): Record<POCategory, number> {
+  const override = PO_BUDGET_BY_MONTH_IDR[monthKey] ?? {}
+  return {
+    Supplies: override.Supplies ?? DEFAULT_PO_BUDGET_IDR.Supplies,
+    Sparepart: override.Sparepart ?? DEFAULT_PO_BUDGET_IDR.Sparepart,
+    'Service & Repair': override['Service & Repair'] ?? DEFAULT_PO_BUDGET_IDR['Service & Repair'],
+  }
 }
 
 export function Dashboard() {
@@ -161,9 +193,67 @@ export function Dashboard() {
   )
 
   const maintenanceCostIdr = useMemo(
-    () => filteredPO.reduce((sum, po) => sum + (po.totalHarga ?? 0), 0),
+    () =>
+      filteredPO
+        .filter((po) => po.status === 'Tahap 7')
+        .reduce((sum, po) => sum + (po.totalHarga ?? 0), 0),
     [filteredPO]
   )
+
+  const poTotalByCategory = useMemo(() => {
+    const totals: Record<POCategory, number> = { Supplies: 0, Sparepart: 0, 'Service & Repair': 0 }
+    filteredPO
+      .filter((po) => po.status === 'Tahap 7')
+      .forEach((po) => {
+        const k = (po.kategori ?? '').trim() as POCategory
+        if (k === 'Supplies' || k === 'Sparepart' || k === 'Service & Repair') {
+          totals[k] += Number(po.totalHarga) || 0
+        }
+      })
+    return totals
+  }, [filteredPO])
+
+  const poBudgetMeta = useMemo(() => {
+    const completed = filteredPO.filter((po) => po.status === 'Tahap 7')
+    const months = new Set<string>()
+    completed.forEach((po) => {
+      const m = (po.tanggal ?? '').slice(0, 7)
+      if (m && m.length === 7) months.add(m)
+    })
+
+    const monthsSorted = [...months].sort((a, b) => a.localeCompare(b))
+    const usedMonths =
+      period !== 'all'
+        ? [period]
+        : monthsSorted.length > 0
+          ? monthsSorted
+          : [new Date().toISOString().slice(0, 7)]
+
+    const totalBudget: Record<POCategory, number> = { Supplies: 0, Sparepart: 0, 'Service & Repair': 0 }
+    usedMonths.forEach((m) => {
+      const b = getBudgetForMonth(m)
+      totalBudget.Supplies += b.Supplies
+      totalBudget.Sparepart += b.Sparepart
+      totalBudget['Service & Repair'] += b['Service & Repair']
+    })
+
+    const label = period !== 'all' ? period : usedMonths.length === 1 ? usedMonths[0] : `${usedMonths.length} bulan`
+
+    return { months: usedMonths, label, totalBudget }
+  }, [filteredPO, period])
+
+  const poPctByCategory = useMemo(() => {
+    const pct = (total: number, budget: number) => {
+      if (!budget || budget <= 0) return 0
+      const v = (total / budget) * 100
+      return Math.round(v * 10) / 10 // 1 desimal
+    }
+    return {
+      Supplies: pct(poTotalByCategory.Supplies, poBudgetMeta.totalBudget.Supplies),
+      Sparepart: pct(poTotalByCategory.Sparepart, poBudgetMeta.totalBudget.Sparepart),
+      'Service & Repair': pct(poTotalByCategory['Service & Repair'], poBudgetMeta.totalBudget['Service & Repair']),
+    } satisfies Record<POCategory, number>
+  }, [poTotalByCategory, poBudgetMeta.totalBudget])
 
   const trendFromFiltered = useMemo(() => {
     const byMonth: Record<string, { reactive: number; preventive: number }> = {}
@@ -265,9 +355,30 @@ export function Dashboard() {
           icon="📈"
         />
         <KpiCard
+          title="Supplies (Budget Used)"
+          value={`${poPctByCategory.Supplies}%`}
+          sub={`${formatIdr(poTotalByCategory.Supplies)} / ${formatIdr(poBudgetMeta.totalBudget.Supplies)} • ${poBudgetMeta.label}`}
+          color="blue"
+          icon="📦"
+        />
+        <KpiCard
+          title="Sparepart (Budget Used)"
+          value={`${poPctByCategory.Sparepart}%`}
+          sub={`${formatIdr(poTotalByCategory.Sparepart)} / ${formatIdr(poBudgetMeta.totalBudget.Sparepart)} • ${poBudgetMeta.label}`}
+          color="blue"
+          icon="🧩"
+        />
+        <KpiCard
+          title="Service & Repair (Budget Used)"
+          value={`${poPctByCategory['Service & Repair']}%`}
+          sub={`${formatIdr(poTotalByCategory['Service & Repair'])} / ${formatIdr(poBudgetMeta.totalBudget['Service & Repair'])} • ${poBudgetMeta.label}`}
+          color="blue"
+          icon="🛠"
+        />
+        <KpiCard
           title="Maintenance Cost (Rp)"
-          value={`Rp. ${new Intl.NumberFormat('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(maintenanceCostIdr)}`}
-          sub={period !== 'all' || section !== 'all' ? 'Sesuai filter Period / Section' : ''}
+          value={formatIdr(maintenanceCostIdr)}
+          sub={period !== 'all' || section !== 'all' ? '' : ''}
           color="blue"
           icon="💰"
         />
