@@ -65,9 +65,25 @@ export function CreateAssetModal({ onClose, onSuccess }: CreateAssetModalProps) 
         installedAt: installedAtValue,
       }),
     })
-      .then((r) => {
-        if (!r.ok) return r.json().then((e) => { throw new Error(e.error || 'Gagal menambah asset') })
-        return r.json()
+      .then(async (r) => {
+        const raw = await r.text()
+        let payload: { error?: string } | null = null
+        if (raw) {
+          try {
+            payload = JSON.parse(raw) as { error?: string }
+          } catch {
+            payload = null
+          }
+        }
+        if (!r.ok) {
+          throw new Error(
+            payload?.error ||
+            (r.status >= 500
+              ? 'Server backend tidak merespons normal. Pastikan backend dev berjalan di port 3001.'
+              : 'Gagal menambah asset')
+          )
+        }
+        return payload
       })
       .then(() => onSuccess())
       .catch((err) => setError(err.message || 'Gagal menambah asset. Silakan coba lagi.'))

@@ -133,6 +133,16 @@ export function Assets() {
     reader.readAsText(file, 'UTF-8')
   }
 
+  const copyQrUrl = async (assetId: string) => {
+    const qrTargetUrl = `${window.location.origin}/asset-history/${encodeURIComponent(assetId)}`
+    try {
+      await navigator.clipboard.writeText(qrTargetUrl)
+      window.alert(`URL QR untuk ${assetId} berhasil disalin.`)
+    } catch {
+      window.prompt('Salin URL QR berikut:', qrTargetUrl)
+    }
+  }
+
   const filtered = assets.filter((a) => {
     const matchSearch =
       a.assetId.toLowerCase().includes(search.toLowerCase()) ||
@@ -305,6 +315,14 @@ export function Assets() {
                           onClick={() => setViewAsset(a)}
                         >
                           View
+                        </button>
+                        <button
+                          type="button"
+                          className="btn btn-secondary"
+                          style={{ padding: '0.35rem 0.65rem', fontSize: '0.8rem' }}
+                          onClick={() => copyQrUrl(a.assetId)}
+                        >
+                          Copy URL QR
                         </button>
                         <button
                           type="button"

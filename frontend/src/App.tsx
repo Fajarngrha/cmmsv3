@@ -6,6 +6,7 @@ import { Assets } from './pages/Assets'
 import { Inventory } from './pages/Inventory'
 import { PreventiveMaintenance } from './pages/PreventiveMaintenance'
 import { TrackingPO } from './pages/TrackingPO'
+import { AssetHistoryPublic } from './pages/AssetHistoryPublic'
 
 function App() {
   return (
@@ -19,6 +20,7 @@ function App() {
         <Route path="/inventory" element={<Inventory />} />
         <Route path="/preventive-maintenance" element={<PreventiveMaintenance />} />
         <Route path="/tracking-po" element={<TrackingPO />} />
+        <Route path="/asset-history/:assetId" element={<AssetHistoryPublic />} />
       </Routes>
     </Layout>
   )

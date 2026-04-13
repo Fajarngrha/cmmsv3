@@ -4,6 +4,7 @@ import { NavLink, useLocation, useSearchParams } from 'react-router-dom'
 const SIDEBAR_COLLAPSED_KEY = 'cmms-sidebar-collapsed'
 
 export function Layout({ children }: { children: ReactNode }) {
+  const location = useLocation()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
     try {
@@ -21,6 +22,11 @@ export function Layout({ children }: { children: ReactNode }) {
       } catch {}
       return next
     })
+  }
+
+  const isPublicAssetPage = location.pathname.startsWith('/asset-history/')
+  if (isPublicAssetPage) {
+    return <>{children}</>
   }
 
   return (
