@@ -6,7 +6,7 @@ interface CreatePermintaanPerbaikanModalProps {
   onSuccess: () => void
 }
 
-const SECTIONS = ['Molding','Molding ZNDC', 'Molding Sekei','Die Casting', 'PM Finishing', 'PM Lathe Cam & Boss','Heat Treatment', 
+const SECTIONS = ['Molding','Die Casting', 'PM Finishing', 'PM Lathe Cam & Boss','Heat Treatment', 
   '3 Set Assy','Machine 1','Machine 2','Press', 'Pulley Assy', 'Kariseikei', 'QC'] as const
 const MACHINE_STATUSES = ['Running', 'Stopped', 'Preventive Maintenance']
 const OTHER_OPTION_VALUE = '__other__'
@@ -20,14 +20,14 @@ const SECTION_MACHINES: Record<string, { names: string[]; brands: string[] }> = 
       'Seikei 39','Seikei 40','Seikei 41','Seikei 42','Kikis 7', 'Kikis 1B','Kikis 6B','Kikis 9','Kikis 8','Kikis 4','Kikis 2FE','Kikis 5B','Segment 2', 'Segment 4', 'Caulking 1','Caulking 2',
       'Caulking 3','Caulking 4',
     ],
-    brands: ['Siemens', 'ABB', 'Mitsubishi', 'Engel', 'Husky'],
+    brands: ['Iwaki', 'Suny', 'Toho Kogyo'],
   },
   'Die Casting': {
     names: ['350T 1 (DC1)', '350T 2 (DC2)', '350T 3 (DC5)', '350T 4 (DC6)', '350T 5 (DC7)', '350T 6 (DC8))','350T 7 (DC10)','350T 8 (DC11)'
-      ,'350 T TOYO 1','350 T TOYO 2','350 T TOYO 3','350 T TOYO 4','250T 3 (DC9)','250T 2(DC4)','500 T TOYO 5','Shotblast 1','Shotblast 2',
-      'Shotblast 3', 'COMPRESSOR 5','COMPRESSOR 7','COMPRESSOR 8'
+      ,'350 T TOYO 1','350 T TOYO 2','350 T TOYO 3','350 T TOYO 5','250T 3 (DC9)','250T 2(DC4)','500 T TOYO 5','Shotblast 1','Shotblast 2',
+      'Shotblast 3', 'COMPRESSOR 5','COMPRESSOR 7','COMPRESSOR 8','Trimming 6','Trimming 8','Trimming 11', 'Trimming 13'
     ],
-    brands: ['Siemens', 'ABB', 'Bühler', 'Toshiba', 'Toyo'],
+    brands: ['Hishinma', 'Toyo', 'Toshiba', 'Shibaura'],
   },
   'PM Finishing': {
     names: ['AT 1', 'AT 3', 'AT 5', 'AT 6', 'AT 10','AT 19','AT 20','AT 23','AT 25','AT 26','AT 27','AT 28','AT 29','AT 34','AT 35'
@@ -35,6 +35,7 @@ const SECTION_MACHINES: Record<string, { names: string[]; brands: string[] }> = 
     'AT 68','AT 69','Ringmash 1','Ringmash 2','Ringmash 3','Ringmash 5','Ringmash 7','Ringmash 6','Ringmash 8','Plasma 1','Plasma 8'
     ,'NC 1','NC 10','NC 22','NC 23','NC 24','NC 27','NC 28','NC 29','NC 30','NC 32','Tapping 1','Tapping 2','Tapping 3','Insert Bearing Manual 1','Insert Bearing Manual 2'],
     brands: ['ABB', 'Siemens', 'Muratec', 'Gates', 'Browning'],
+
   },
   'PM Lathe Cam & Boss': {
     names: ['AT 2', 'AT 31', 'AT 21', 'AT 22', 'AT 47','AT 54R','AT 54L','AT 67R','AT 67L','AT 9R','AT 9L','AT 18R','AT 18L','AT 59R',
@@ -42,7 +43,7 @@ const SECTION_MACHINES: Record<string, { names: string[]; brands: string[] }> = 
       'NC 2','NC 11','NC 12','NC 13','NC 14','NC 15','NC 16','NC 17','NC 18','NC 19','NC 20','NC 21','NC 25','NC 26','NC 33','NC 34','NC 4','NC 5','NC 6','NC 7','NC 8','NC 9','NC A2','NC D1',
       'Tapping 1','Tapping 2','Tapping 3','Tapping 6','Tapping 6','Grinding 1','Grinding 2','Grinding 11','Grinding 12','Washing 1','Washing 2','MC 1','MC 2','MC 5','MC 6','MC 7','MC 8','MC 9','MC 10',
       'MC 11','MC 12','MC 13','MC 14','MC 15','MC 16','MC 17','MC 18','MC 19','MC 22','MILLING 2','MILLING 7','MILLING 8','MILLING 9'],
-    brands: ['ABB', 'Siemens', 'Muratec', 'Gates', 'Browning'],
+    brands: ['Muratec', 'Kawasaki', 'Origin', 'Takisawa', 'Towa Seiki', 'Mori Seiki'],
   },
   'Heat Treatment': {
     names: ['Dowa 8', 'Dowa 9', 'Dowa 10', 'Oriental 1', 'Oriental 2','Oriental 3','Oriental 4','Oriental 5','Oriental 6',
@@ -54,19 +55,37 @@ const SECTION_MACHINES: Record<string, { names: string[]; brands: string[] }> = 
       ,'AT 3','AT 4','NC 1','NC 37','NC 39','NC 38','NC 40','NC 2','NC 17','NC 29','NC 4','NC 13','AT Burnishing 1','AT Burnishing 2'
       ,'AT Burnishing 3','AT Burnishing 4','Burnishing Manual 1','Burnishing Manual 2','Air Press 1','Air Press 2','NC 35','NC 20','NC 14','Caulking 1'
       ,'Caulking 2','Caulking 3','Caulking 4','M/C Hot Press','AT5'],
-    brands: ['ABB', 'Siemens', 'Fenner', 'Gates', 'Browning'],
+    brands: ['Mori Presisi'],
   },
   'Machine 1': {
-    names: ['Pulley Machine 1', 'Pulley Machine 2', 'Pulley Assembly Line', 'Pulley Assy A', 'Pulley Assy B'],
-    brands: ['ABB', 'Siemens', 'Fenner', 'Gates', 'Browning'],
+    names: ['NC Mori 23', 'NC Takamaz 46', 'NC Takamaz 25', 'NC Takamaz 45', 'NC Takamaz 19', 'Washing', 'Broach 5', 'NC Takamaz 47', 'Tap&Drill 5(Drill)', 'Tap&Drill 5 (Tap)'
+            , 'Tap&Drill 4(Drill)', 'Tap&Drill 4 (Tap)', 'NC Takamaz 23', 'Tap&Drill 3(Drill)', 'Tap&Drill 3 (Tap)', 'Broach 6','Auto Robot', 'NC Takamaz 22', 'NC Takamaz 21'
+            , 'NC Takamaz 9', 'NC Takamaz 48', 'NC Takamaz 15', 'NC Takamaz 16', 'Broach 4', 'NC Takamaz 24', 'NC Takamaz 42', 'Broach 3', 'Broach 8', 'Broach 9', 'Broach 1'  
+
+    ],
+    brands: ['Mori Seiki', 'Takamaz', 'Sanjo', 'Kiwa', 'Kira','Kawasaki','Rokugo','Nachi'],
   },
   'Machine 2': {
-    names: ['Pulley Machine 1', 'Pulley Machine 2', 'Pulley Assembly Line', 'Pulley Assy A', 'Pulley Assy B'],
-    brands: ['ABB', 'Siemens', 'Fenner', 'Gates', 'Browning'],
+    names: ['AT 1', 'AT 2', 'AT 6', 'AT 8', 'AT 9','AT 12', 'AT 41','Tig Welding 1','Tig Welding 2','Tig Welding 3','Tig Welding 4','Tig Welding 5','Tig Welding 6','Tig Welding 7'
+            ,'Tig Welding 8','Tig Welding 9','Tig Welding 10','Tig Welding 16','Tig Welding 17','Tig Welding 18', 'Tig 11', 'Tig 12', 'Tig 13', 'Tig Ring 14', 'Tig Ring 15', 'Tig Ring 14/15'
+            
+    ],
+    brands: ['Muratec', 'Takisawwa', 'Mitsubishi'],
   },
   'Press': {
-    names: ['Pulley Machine 1', 'Pulley Machine 2', 'Pulley Assembly Line', 'Pulley Assy A', 'Pulley Assy B'],
-    brands: ['ABB', 'Siemens', 'Fenner', 'Gates', 'Browning'],
+    names: ['110T 1', 'Uncoiler 110T 1', '110T 3', 'Uncoiler 110T 3', '200T 1', 'Uncoiler 200T 3', '200T 3', '200T 5','200T 4','300T 1','300T 2','Uncoiler 300T 2'
+
+
+    ],
+    brands: ['Aida', 'Komatsu'],
+  },
+  'Pulley Assy': {
+    names: ['Air Press L1', 'Air Press L2', 'Air Press L3', 'Air Press L4', 'Air Press L5', 'Balance 1 L1', 'Balance 2 L1', 'Balance 3 L2','Balance 4 L2','Balance 5 L3','Balance 6 L3','Balance 7 L3'
+            , 'Balance 8', 'Balance 9 L5', ''
+            
+
+    ],
+    brands: ['Unggul', 'Shimadzu','Yoshikawa','Tomita','Tokoton Meiwa','KyotoSeiko','Yamada'],
   },
 }
 
