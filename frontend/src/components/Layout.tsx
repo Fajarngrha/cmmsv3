@@ -1,9 +1,18 @@
 import { ReactNode, useState } from 'react'
 import { NavLink, useLocation, useSearchParams } from 'react-router-dom'
+import { SessionUser } from '../auth'
 
 const SIDEBAR_COLLAPSED_KEY = 'cmms-sidebar-collapsed'
 
-export function Layout({ children }: { children: ReactNode }) {
+export function Layout({
+  children,
+  sessionUser,
+  onLogout,
+}: {
+  children: ReactNode
+  sessionUser: SessionUser
+  onLogout: () => void
+}) {
   const location = useLocation()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
@@ -39,7 +48,7 @@ export function Layout({ children }: { children: ReactNode }) {
         onCollapseToggle={toggleCollapse}
       />
       <div className="main-content">
-        <Header onMenuClick={() => setSidebarOpen(true)} />
+        <Header onMenuClick={() => setSidebarOpen(true)} sessionUser={sessionUser} onLogout={onLogout} />
         {children}
       </div>
     </div>
@@ -134,7 +143,15 @@ const SECTION_OPTIONS = [
   { value: 'Line 3', label: 'Line 3' },
 ]
 
-export function Header({ onMenuClick }: { onMenuClick?: () => void }) {
+export function Header({
+  onMenuClick,
+  sessionUser,
+  onLogout,
+}: {
+  onMenuClick?: () => void
+  sessionUser: SessionUser
+  onLogout: () => void
+}) {
   const location = useLocation()
   const [searchParams, setSearchParams] = useSearchParams()
   const titles: Record<string, string> = {
@@ -205,10 +222,13 @@ export function Header({ onMenuClick }: { onMenuClick?: () => void }) {
         <button type="button" className="btn btn-primary" onClick={() => window.location.reload()}>
           ↻ Refresh
         </button>
-        <div className="header-user" role="button" tabIndex={0} aria-label="User menu">
+        <div className="header-user" title={`${sessionUser.displayName} (${sessionUser.role})`}>
           <span className="header-avatar">👤</span>
-          <span>▼</span>
+          <span>{sessionUser.displayName}</span>
         </div>
+        <button type="button" className="btn btn-secondary" onClick={onLogout}>
+          Logout
+        </button>
       </div>
     </header>
   )

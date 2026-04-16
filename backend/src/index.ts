@@ -9,12 +9,15 @@ dotenv.config({ path: path.join(__dirname, '..', '.env') })
 import express from 'express'
 import cors from 'cors'
 import fs from 'fs'
+import { authRouter } from './routes/auth.js'
+import { authMiddleware } from './middleware/auth.js'
 import { dashboardRouter } from './routes/dashboard.js'
 import { permintaanPerbaikanRouter } from './routes/permintaanPerbaikan.js'
 import { assetsRouter } from './routes/assets.js'
 import { inventoryRouter } from './routes/inventory.js'
 import { purchaseOrdersRouter } from './routes/purchaseOrders.js'
 import { query, getConnectionInfo } from './db/index.js'
+import { ensureAuthSchema, ensureDefaultUsers } from './auth.js'
 
 const app = express()
 const PORT = Number(process.env.PORT) || 3001
@@ -23,6 +26,8 @@ const HOST = process.env.HOST || '0.0.0.0'
 app.use(cors())
 app.use(express.json({ limit: '10mb' }))
 app.use(express.urlencoded({ extended: true, limit: '10mb' }))
+app.use('/api', authRouter)
+app.use('/api', authMiddleware)
 app.use('/api', dashboardRouter)
 app.use('/api', permintaanPerbaikanRouter)
 app.use('/api', assetsRouter)
@@ -42,6 +47,8 @@ if (fs.existsSync(staticDir)) {
 async function start() {
   try {
     await query('SELECT 1')
+    await ensureAuthSchema()
+    await ensureDefaultUsers()
     console.log('Database: connected as', getConnectionInfo())
     const tbl = await query(
       `SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'po_no_registrasi_seq'`
