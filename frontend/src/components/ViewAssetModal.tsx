@@ -62,6 +62,7 @@ function formatDateTime(s: string) {
 export function ViewAssetModal({ asset, onClose }: ViewAssetModalProps) {
   const [workOrders, setWorkOrders] = useState<WorkOrder[]>([])
   const [loading, setLoading] = useState(true)
+  const isCompressorAsset = normalizeKey(asset.name).includes('compressor') || normalizeKey(asset.name).includes('kompressor')
 
   useEffect(() => {
     apiFetch(apiUrl('/api/permintaan-perbaikan'))
@@ -127,7 +128,7 @@ export function ViewAssetModal({ asset, onClose }: ViewAssetModalProps) {
                 <span className="wo-detail-label">Section</span>
                 <span className="wo-detail-value">{asset.section}</span>
               </div>
-              {(asset.maker || asset.model || asset.flowCapacity != null) && (
+              {(isCompressorAsset || asset.maker || asset.model || asset.flowCapacity != null) && (
                 <>
                   <div className="wo-detail-row">
                     <span className="wo-detail-label">Maker</span>

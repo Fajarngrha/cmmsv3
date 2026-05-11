@@ -195,6 +195,91 @@ assetsRouter.post('/assets/import', async (req, res) => {
   }
 })
 
+assetsRouter.patch('/assets/:id', async (req, res) => {
+  try {
+    const body = req.body as {
+      assetId?: string
+      name?: string
+      section?: string
+      maker?: string
+      model?: string
+      flowCapacity?: number
+      health?: 'Running' | 'Warning' | 'Breakdown'
+      lastPmDate?: string
+      nextPmDate?: string
+      uptimePercent?: number
+      installedAt?: string
+    }
+    const existing = await query('SELECT * FROM assets WHERE id = $1 LIMIT 1', [req.params.id])
+    if (existing.rows.length === 0) return res.status(404).json({ error: 'Asset tidak ditemukan.' })
+
+    const current = rowToAsset(existing.rows[0])
+    const nextName = typeof body.name === 'string' ? body.name.trim() : String(current.name).trim()
+    const nextSection = typeof body.section === 'string' ? body.section.trim() : String(current.section).trim()
+    if (!nextName) return res.status(400).json({ error: 'Nama asset wajib diisi.' })
+    if (!nextSection) return res.status(400).json({ error: 'Section wajib diisi.' })
+
+    const normalizedName = nextName.toLowerCase()
+    const isCompressorAsset = normalizedName.includes('compressor') || normalizedName.includes('kompressor')
+    const nextMaker = typeof body.maker === 'string' ? body.maker.trim() || null : (current.maker ?? null)
+    const nextModel = typeof body.model === 'string' ? body.model.trim() || null : (current.model ?? null)
+    if (isCompressorAsset && !nextMaker) {
+      return res.status(400).json({ error: 'Maker wajib diisi untuk asset kompresor.' })
+    }
+    if (isCompressorAsset && !nextModel) {
+      return res.status(400).json({ error: 'Model wajib diisi untuk asset kompresor.' })
+    }
+
+    let nextFlowCapacity: number | null = current.flowCapacity != null ? Number(current.flowCapacity) : null
+    if (body.flowCapacity === null) nextFlowCapacity = null
+    if (typeof body.flowCapacity === 'number') nextFlowCapacity = Number(body.flowCapacity)
+    if (nextFlowCapacity != null && (!Number.isFinite(nextFlowCapacity) || nextFlowCapacity < 0)) {
+      return res.status(400).json({ error: 'Kapasitas Debit harus berupa angka valid.' })
+    }
+
+    const nextHealth =
+      body.health && ['Running', 'Warning', 'Breakdown'].includes(body.health) ? body.health : current.health
+    const lastPm = normalizeDateString(body.lastPmDate, current.lastPmDate || null)
+    const nextPm = normalizeDateString(body.nextPmDate, current.nextPmDate || null)
+    const installedAt = normalizeDateString(body.installedAt, current.installedAt || null)
+
+    const result = await query(
+      `UPDATE assets
+       SET asset_id = $2,
+           name = $3,
+           section = $4,
+           maker = $5,
+           model = $6,
+           flow_capacity = $7,
+           health = $8,
+           last_pm_date = $9,
+           next_pm_date = $10,
+           uptime_percent = $11,
+           installed_at = $12
+       WHERE id = $1
+       RETURNING *`,
+      [
+        req.params.id,
+        typeof body.assetId === 'string' ? body.assetId.trim() || current.assetId : current.assetId,
+        nextName,
+        nextSection,
+        nextMaker,
+        nextModel,
+        nextFlowCapacity,
+        nextHealth,
+        lastPm,
+        nextPm,
+        typeof body.uptimePercent === 'number' ? body.uptimePercent : current.uptimePercent,
+        installedAt,
+      ]
+    )
+    res.json(rowToAsset(result.rows[0]))
+  } catch (e) {
+    console.error(e)
+    res.status(500).json({ error: 'Gagal memperbarui asset' })
+  }
+})
+
 assetsRouter.delete('/assets/:id', async (req, res) => {
   try {
     const result = await query('DELETE FROM assets WHERE id = $1 RETURNING id', [req.params.id])

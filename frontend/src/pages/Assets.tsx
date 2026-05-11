@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { apiUrl, apiFetch } from '../api'
 import { CreateAssetModal } from '../components/CreateAssetModal'
+import { EditAssetModal } from '../components/EditAssetModal'
 import { ViewAssetModal } from '../components/ViewAssetModal'
 import { hitungUsiaMesin } from '../utils/assetAge'
 import { buildCsvContent, downloadCsv, exportToCsv, parseCsvToObjects, type CsvColumn } from '../utils/exportToCsv'
@@ -31,6 +32,7 @@ export function Assets() {
   const [loading, setLoading] = useState(true)
   const [modalOpen, setModalOpen] = useState(false)
   const [viewAsset, setViewAsset] = useState<Asset | null>(null)
+  const [editAsset, setEditAsset] = useState<Asset | null>(null)
   const [importMessage, setImportMessage] = useState<{ type: 'ok' | 'err'; text: string } | null>(null)
   const [importing, setImporting] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -158,6 +160,11 @@ export function Assets() {
     } catch {
       window.prompt('Salin URL QR berikut:', qrTargetUrl)
     }
+  }
+
+  const closeActionMenu = (evt: React.MouseEvent<HTMLElement>) => {
+    const details = evt.currentTarget.closest('details')
+    if (details) details.removeAttribute('open')
   }
 
   const filtered = assets.filter((a) => {
@@ -333,38 +340,56 @@ export function Assets() {
                     <td style={{ padding: '0.75rem' }}>{a.lastPmDate}</td>
                     <td style={{ padding: '0.75rem' }}>{a.nextPmDate}</td>
                     <td style={{ padding: '0.75rem' }}>
-                      <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                        <button
-                          type="button"
+                      <details style={{ position: 'relative', display: 'inline-block' }}>
+                        <summary
                           className="btn btn-secondary"
-                          style={{ padding: '0.35rem 0.65rem', fontSize: '0.8rem' }}
-                          onClick={() => setViewAsset(a)}
+                          style={{ listStyle: 'none', padding: '0.3rem 0.6rem', fontSize: '1rem', lineHeight: 1, minWidth: 36, justifyContent: 'center' }}
+                          aria-label={`Actions ${a.assetId}`}
                         >
-                          View
-                        </button>
-                        <button
-                          type="button"
-                          className="btn btn-secondary"
-                          style={{ padding: '0.35rem 0.65rem', fontSize: '0.8rem' }}
-                          onClick={() => copyQrUrl(a.assetId)}
-                        >
-                          Copy URL QR
-                        </button>
-                        <button
-                          type="button"
-                          className="btn"
-                          style={{ padding: '0.35rem 0.65rem', fontSize: '0.8rem', background: '#fee2e2', color: '#991b1b', border: '1px solid #fecaca' }}
-                          onClick={() => {
-                            if (window.confirm(`Hapus asset ${a.assetId} (${a.name})?`)) {
-                              apiFetch(apiUrl(`/api/assets/${a.id}`), { method: 'DELETE' })
-                                .then((r) => { if (r.ok) load() })
-                                .catch(() => {})
-                            }
-                          }}
-                        >
-                          Delete
-                        </button>
-                      </div>
+                          ☰
+                        </summary>
+                        <div style={{ position: 'absolute', right: 0, top: 'calc(100% + 0.25rem)', minWidth: 170, zIndex: 5, background: '#fff', border: '1px solid #e2e8f0', borderRadius: 8, boxShadow: '0 8px 24px rgba(15, 23, 42, 0.12)', padding: '0.25rem' }}>
+                          <button
+                            type="button"
+                            className="btn btn-secondary"
+                            style={{ width: '100%', justifyContent: 'flex-start', padding: '0.45rem 0.6rem', fontSize: '0.82rem' }}
+                            onClick={(e) => { closeActionMenu(e); setViewAsset(a) }}
+                          >
+                            View
+                          </button>
+                          <button
+                            type="button"
+                            className="btn btn-secondary"
+                            style={{ width: '100%', justifyContent: 'flex-start', padding: '0.45rem 0.6rem', fontSize: '0.82rem' }}
+                            onClick={(e) => { closeActionMenu(e); setEditAsset(a) }}
+                          >
+                            Edit
+                          </button>
+                          <button
+                            type="button"
+                            className="btn btn-secondary"
+                            style={{ width: '100%', justifyContent: 'flex-start', padding: '0.45rem 0.6rem', fontSize: '0.82rem' }}
+                            onClick={(e) => { closeActionMenu(e); void copyQrUrl(a.assetId) }}
+                          >
+                            Copy URL QR
+                          </button>
+                          <button
+                            type="button"
+                            className="btn"
+                            style={{ width: '100%', justifyContent: 'flex-start', padding: '0.45rem 0.6rem', fontSize: '0.82rem', background: '#fee2e2', color: '#991b1b', border: '1px solid #fecaca' }}
+                            onClick={(e) => {
+                              closeActionMenu(e)
+                              if (window.confirm(`Hapus asset ${a.assetId} (${a.name})?`)) {
+                                apiFetch(apiUrl(`/api/assets/${a.id}`), { method: 'DELETE' })
+                                  .then((r) => { if (r.ok) load() })
+                                  .catch(() => {})
+                              }
+                            }}
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      </details>
                     </td>
                   </tr>
               ))}
@@ -416,6 +441,16 @@ export function Assets() {
       )}
       {viewAsset && (
         <ViewAssetModal asset={viewAsset} onClose={() => setViewAsset(null)} />
+      )}
+      {editAsset && (
+        <EditAssetModal
+          asset={editAsset}
+          onClose={() => setEditAsset(null)}
+          onSuccess={() => {
+            setEditAsset(null)
+            load()
+          }}
+        />
       )}
     </div>
   )
