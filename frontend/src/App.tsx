@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { Layout } from './components/Layout'
 import { ProtectedRoute } from './components/ProtectedRoute'
@@ -10,24 +9,12 @@ import { PreventiveMaintenance } from './pages/PreventiveMaintenance'
 import { TrackingPO } from './pages/TrackingPO'
 import { AssetHistoryPublic } from './pages/AssetHistoryPublic'
 import { Login } from './pages/Login'
-import { getSessionUser } from './auth'
 
 function App() {
-  const [sessionUser, setSessionUser] = useState(() => getSessionUser())
-
-  if (!sessionUser) {
-    return (
-      <Routes>
-        <Route path="/login" element={<Login onLoginSuccess={() => setSessionUser(getSessionUser())} />} />
-        <Route path="/asset-history/:assetId" element={<AssetHistoryPublic />} />
-        <Route path="*" element={<Navigate to="/login" replace />} />
-      </Routes>
-    )
-  }
-
   return (
     <Routes>
       <Route path="/login" element={<Login />} />
+      <Route path="/asset-history/:assetId" element={<AssetHistoryPublic />} />
       <Route element={<ProtectedRoute />}>
         <Route element={<Layout />}>
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
@@ -40,6 +27,7 @@ function App() {
           <Route path="/tracking-po" element={<TrackingPO />} />
         </Route>
       </Route>
+      <Route path="*" element={<Navigate to="/dashboard" replace />} />
     </Routes>
   )
 }
