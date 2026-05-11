@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { query } from '../db/index.js';
-import { rowToAsset } from '../db/mappers.js';
+import { rowToAsset, rowToWorkOrder } from '../db/mappers.js';
 export const assetsRouter = Router();
 function normalizeDateString(input, fallback) {
     const raw = input?.trim();
@@ -14,6 +14,9 @@ function normalizeDateString(input, fallback) {
         return fallback ?? null;
     return d.toISOString().slice(0, 10);
 }
+function normalizeKey(input) {
+    return input.trim().toLowerCase().replace(/\s+/g, ' ');
+}
 assetsRouter.get('/assets', async (_, res) => {
     try {
         const result = await query('SELECT * FROM assets ORDER BY id');
@@ -22,6 +25,37 @@ assetsRouter.get('/assets', async (_, res) => {
     catch (e) {
         console.error(e);
         res.status(500).json({ error: 'Gagal mengambil data assets' });
+    }
+});
+assetsRouter.get('/assets/:assetId/history', async (req, res) => {
+    try {
+        const inputAssetId = (req.params.assetId || '').trim();
+        if (!inputAssetId)
+            return res.status(400).json({ error: 'assetId wajib diisi.' });
+        const assetResult = await query('SELECT * FROM assets WHERE LOWER(asset_id) = LOWER($1) LIMIT 1', [inputAssetId]);
+        if (assetResult.rows.length === 0)
+            return res.status(404).json({ error: 'Asset tidak ditemukan.' });
+        const asset = rowToAsset(assetResult.rows[0]);
+        const machineNameKey = normalizeKey(String(asset.name));
+        const machineAssetIdKey = normalizeKey(String(asset.assetId));
+        const historyResult = await query(`SELECT * FROM permintaan_perbaikan
+       WHERE status = 'Completed'
+         AND LOWER(TRIM(machine_name)) IN ($1, $2)
+       ORDER BY COALESCE(closed_at, created_at) DESC`, [machineNameKey, machineAssetIdKey]);
+        const workOrders = historyResult.rows.map((r) => rowToWorkOrder(r));
+        const sparePartsReplaced = workOrders.filter((wo) => Boolean(wo.replacedSpareParts?.trim()) || Boolean(wo.replacedPartsSpec?.trim()) || wo.replacedPartsQty != null);
+        const encodedAssetId = encodeURIComponent(String(asset.assetId));
+        const baseUrl = `${req.protocol}://${req.get('host')}`;
+        res.json({
+            asset,
+            qrUrl: `${baseUrl}/asset-history/${encodedAssetId}`,
+            repairHistory: workOrders,
+            sparePartsReplaced,
+        });
+    }
+    catch (e) {
+        console.error(e);
+        res.status(500).json({ error: 'Gagal mengambil riwayat asset' });
     }
 });
 assetsRouter.post('/assets', async (req, res) => {

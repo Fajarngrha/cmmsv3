@@ -15,6 +15,7 @@ import { purchaseOrdersRouter } from './routes/purchaseOrders.js';
 import { authRouter, isLoginConfigured, verifyRequestAuth } from './routes/auth.js';
 import { loadAuthSettings, getAuthState } from './auth/mode.js';
 import { query, getConnectionInfo } from './db/index.js';
+import { ensureAuthSchema, ensureDefaultUsers } from './auth.js';
 const app = express();
 const PORT = Number(process.env.PORT) || 3001;
 const HOST = process.env.HOST || '0.0.0.0';
@@ -53,6 +54,8 @@ if (fs.existsSync(staticDir)) {
 async function start() {
     try {
         await query('SELECT 1');
+        await ensureAuthSchema();
+        await ensureDefaultUsers();
         console.log('Database: connected as', getConnectionInfo());
         const tbl = await query(`SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'po_no_registrasi_seq'`);
         if (tbl.rows.length === 0) {

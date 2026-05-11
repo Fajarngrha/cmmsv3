@@ -9,8 +9,6 @@ dotenv.config({ path: path.join(__dirname, '..', '.env') })
 import express from 'express'
 import cors from 'cors'
 import fs from 'fs'
-import { authRouter } from './routes/auth.js'
-import { authMiddleware } from './middleware/auth.js'
 import { dashboardRouter } from './routes/dashboard.js'
 import { permintaanPerbaikanRouter } from './routes/permintaanPerbaikan.js'
 import { assetsRouter } from './routes/assets.js'
@@ -28,7 +26,6 @@ const HOST = process.env.HOST || '0.0.0.0'
 app.use(cors())
 app.use(express.json({ limit: '10mb' }))
 app.use(express.urlencoded({ extended: true, limit: '10mb' }))
-<<<<<<< HEAD
 
 app.use('/api/auth', authRouter)
 
@@ -49,10 +46,6 @@ app.use('/api', (req, res, next) => {
   next()
 })
 
-=======
-app.use('/api', authRouter)
-app.use('/api', authMiddleware)
->>>>>>> e9013e01e2e0e24f3f5ee2b7694d2a62b75c3017
 app.use('/api', dashboardRouter)
 app.use('/api', permintaanPerbaikanRouter)
 app.use('/api', assetsRouter)
