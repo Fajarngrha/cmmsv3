@@ -6,7 +6,7 @@ const DEFAULT_AUTH_USERS = [
     { username: 'supervisor', password: 'supervisor123', displayName: 'Maintenance Supervisor', role: 'Supervisor' },
     { username: 'teknisi', password: 'teknisi123', displayName: 'Teknisi Maintenance', role: 'Technician' },
 ];
-const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '12h';
+const JWT_EXPIRES_IN = (process.env.JWT_EXPIRES_IN || '12h');
 const SALT_ROUNDS = 10;
 function getJwtSecret() {
     const secret = process.env.JWT_SECRET;

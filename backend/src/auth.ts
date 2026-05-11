@@ -31,7 +31,7 @@ const DEFAULT_AUTH_USERS: SeedUser[] = [
   { username: 'teknisi', password: 'teknisi123', displayName: 'Teknisi Maintenance', role: 'Technician' },
 ]
 
-const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '12h'
+const JWT_EXPIRES_IN = (process.env.JWT_EXPIRES_IN || '12h') as jwt.SignOptions['expiresIn']
 const SALT_ROUNDS = 10
 
 function getJwtSecret(): string {

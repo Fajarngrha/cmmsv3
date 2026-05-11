@@ -43,7 +43,9 @@ assetsRouter.get('/assets/:assetId/history', async (req, res) => {
          AND LOWER(TRIM(machine_name)) IN ($1, $2)
        ORDER BY COALESCE(closed_at, created_at) DESC`, [machineNameKey, machineAssetIdKey]);
         const workOrders = historyResult.rows.map((r) => rowToWorkOrder(r));
-        const sparePartsReplaced = workOrders.filter((wo) => Boolean(wo.replacedSpareParts?.trim()) || Boolean(wo.replacedPartsSpec?.trim()) || wo.replacedPartsQty != null);
+        const sparePartsReplaced = workOrders.filter((wo) => (typeof wo.replacedSpareParts === 'string' && Boolean(wo.replacedSpareParts.trim())) ||
+            (typeof wo.replacedPartsSpec === 'string' && Boolean(wo.replacedPartsSpec.trim())) ||
+            wo.replacedPartsQty != null);
         const encodedAssetId = encodeURIComponent(String(asset.assetId));
         const baseUrl = `${req.protocol}://${req.get('host')}`;
         res.json({
