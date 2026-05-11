@@ -10,15 +10,10 @@ import { PreventiveMaintenance } from './pages/PreventiveMaintenance'
 import { TrackingPO } from './pages/TrackingPO'
 import { AssetHistoryPublic } from './pages/AssetHistoryPublic'
 import { Login } from './pages/Login'
-import { clearSessionUser, getSessionUser } from './auth'
+import { getSessionUser } from './auth'
 
 function App() {
   const [sessionUser, setSessionUser] = useState(() => getSessionUser())
-
-  const handleLogout = () => {
-    clearSessionUser()
-    setSessionUser(null)
-  }
 
   if (!sessionUser) {
     return (

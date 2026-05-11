@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 import { useState } from 'react'
 import { NavLink, Outlet, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
@@ -6,24 +5,6 @@ import { useAuth } from '../context/AuthContext'
 const SIDEBAR_COLLAPSED_KEY = 'cmms-sidebar-collapsed'
 
 export function Layout() {
-=======
-import { ReactNode, useState } from 'react'
-import { NavLink, useLocation, useSearchParams } from 'react-router-dom'
-import { SessionUser } from '../auth'
-
-const SIDEBAR_COLLAPSED_KEY = 'cmms-sidebar-collapsed'
-
-export function Layout({
-  children,
-  sessionUser,
-  onLogout,
-}: {
-  children: ReactNode
-  sessionUser: SessionUser
-  onLogout: () => void
-}) {
-  const location = useLocation()
->>>>>>> e9013e01e2e0e24f3f5ee2b7694d2a62b75c3017
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
     try {
@@ -45,7 +26,7 @@ export function Layout({
 
   const isPublicAssetPage = location.pathname.startsWith('/asset-history/')
   if (isPublicAssetPage) {
-    return <>{children}</>
+    return <Outlet />
   }
 
   return (
@@ -58,13 +39,8 @@ export function Layout({
         onCollapseToggle={toggleCollapse}
       />
       <div className="main-content">
-<<<<<<< HEAD
         <Header onMenuClick={() => setSidebarOpen(true)} />
         <Outlet />
-=======
-        <Header onMenuClick={() => setSidebarOpen(true)} sessionUser={sessionUser} onLogout={onLogout} />
-        {children}
->>>>>>> e9013e01e2e0e24f3f5ee2b7694d2a62b75c3017
       </div>
     </div>
   )
@@ -158,21 +134,9 @@ const SECTION_OPTIONS = [
   { value: 'Line 3', label: 'Line 3' },
 ]
 
-<<<<<<< HEAD
 export function Header({ onMenuClick }: { onMenuClick?: () => void }) {
   const { username, displayName, logout, loginRequired } = useAuth()
   const navigate = useNavigate()
-=======
-export function Header({
-  onMenuClick,
-  sessionUser,
-  onLogout,
-}: {
-  onMenuClick?: () => void
-  sessionUser: SessionUser
-  onLogout: () => void
-}) {
->>>>>>> e9013e01e2e0e24f3f5ee2b7694d2a62b75c3017
   const location = useLocation()
   const [searchParams, setSearchParams] = useSearchParams()
   const titles: Record<string, string> = {
@@ -243,7 +207,6 @@ export function Header({
         <button type="button" className="btn btn-primary" onClick={() => window.location.reload()}>
           ↻ Refresh
         </button>
-<<<<<<< HEAD
         <div className="header-user" aria-label="Pengguna">
           <span className="header-avatar" aria-hidden="true">
             👤
@@ -261,15 +224,7 @@ export function Header({
               Keluar
             </button>
           ) : null}
-=======
-        <div className="header-user" title={`${sessionUser.displayName} (${sessionUser.role})`}>
-          <span className="header-avatar">👤</span>
-          <span>{sessionUser.displayName}</span>
->>>>>>> e9013e01e2e0e24f3f5ee2b7694d2a62b75c3017
         </div>
-        <button type="button" className="btn btn-secondary" onClick={onLogout}>
-          Logout
-        </button>
       </div>
     </header>
   )

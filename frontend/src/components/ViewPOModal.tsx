@@ -58,13 +58,8 @@ export function ViewPOModal({ poId, onClose, onSuccess }: ViewPOModalProps) {
   const [error, setError] = useState('')
 
   useEffect(() => {
-<<<<<<< HEAD
     apiFetch(apiUrl(`/api/purchase-orders/${poId}`))
-      .then((r) => {
-=======
-    fetch(apiUrl(`/api/purchase-orders/${poId}`))
       .then(async (r) => {
->>>>>>> e9013e01e2e0e24f3f5ee2b7694d2a62b75c3017
         if (!r.ok) throw new Error('PO tidak ditemukan')
         const data = await safeReadJson<PurchaseOrder>(r)
         if (!data) throw new Error('PO tidak ditemukan')

@@ -1,10 +1,5 @@
-<<<<<<< HEAD
-import { useEffect, useState } from 'react'
-import { apiUrl, apiFetch } from '../api'
-=======
 import { useEffect, useMemo, useState } from 'react'
-import { apiUrl } from '../api'
->>>>>>> e9013e01e2e0e24f3f5ee2b7694d2a62b75c3017
+import { apiUrl, apiFetch } from '../api'
 import { CreatePOModal } from '../components/CreatePOModal'
 import { HistoryPOModal } from '../components/HistoryPOModal'
 import { ViewPOModal } from '../components/ViewPOModal'

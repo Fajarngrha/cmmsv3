@@ -4,13 +4,18 @@ import { BrowserRouter } from 'react-router-dom'
 import { AuthProvider } from './context/AuthContext'
 import App from './App'
 import { apiBase } from './api'
-import { clearSessionUser, getAccessToken } from './auth'
+import { AUTH_DISPLAY_KEY, AUTH_TOKEN_KEY, AUTH_USER_KEY } from './api'
 import './index.css'
 
 const nativeFetch = window.fetch.bind(window)
 
 window.fetch = (input: RequestInfo | URL, init?: RequestInit) => {
-  const token = getAccessToken()
+  let token: string | null = null
+  try {
+    token = localStorage.getItem(AUTH_TOKEN_KEY)
+  } catch {
+    token = null
+  }
   const requestUrl = typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url
   const shouldAttachToken =
     Boolean(token) &&
@@ -21,7 +26,13 @@ window.fetch = (input: RequestInfo | URL, init?: RequestInit) => {
 
   return nativeFetch(input, { ...init, headers }).then((response) => {
     if (response.status === 401) {
-      clearSessionUser()
+      try {
+        localStorage.removeItem(AUTH_TOKEN_KEY)
+        localStorage.removeItem(AUTH_USER_KEY)
+        localStorage.removeItem(AUTH_DISPLAY_KEY)
+      } catch {
+        // ignore storage errors
+      }
       if (!window.location.pathname.startsWith('/asset-history/')) {
         window.location.href = '/login'
       }
