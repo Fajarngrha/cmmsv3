@@ -31,20 +31,21 @@ function App() {
   }
 
   return (
-    <Layout sessionUser={sessionUser} onLogout={handleLogout}>
-      <Routes>
-        <Route path="/" element={<Navigate to="/dashboard" replace />} />
-        <Route path="/login" element={<Navigate to="/dashboard" replace />} />
-        <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/work-orders" element={<Navigate to="/permintaan-perbaikan" replace />} />
-        <Route path="/permintaan-perbaikan" element={<PermintaanPerbaikan />} />
-        <Route path="/assets" element={<Assets />} />
-        <Route path="/inventory" element={<Inventory />} />
-        <Route path="/preventive-maintenance" element={<PreventiveMaintenance />} />
-        <Route path="/tracking-po" element={<TrackingPO />} />
-        <Route path="/asset-history/:assetId" element={<AssetHistoryPublic />} />
-      </Routes>
-    </Layout>
+    <Routes>
+      <Route path="/login" element={<Login />} />
+      <Route element={<ProtectedRoute />}>
+        <Route element={<Layout />}>
+          <Route path="/" element={<Navigate to="/dashboard" replace />} />
+          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/work-orders" element={<Navigate to="/permintaan-perbaikan" replace />} />
+          <Route path="/permintaan-perbaikan" element={<PermintaanPerbaikan />} />
+          <Route path="/assets" element={<Assets />} />
+          <Route path="/inventory" element={<Inventory />} />
+          <Route path="/preventive-maintenance" element={<PreventiveMaintenance />} />
+          <Route path="/tracking-po" element={<TrackingPO />} />
+        </Route>
+      </Route>
+    </Routes>
   )
 }
 
