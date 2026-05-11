@@ -176,7 +176,10 @@ export function ViewPMModal({ pm, onClose, onSuccess }: ViewPMModalProps) {
             <SectionTitle title="5. Equipment and Spare Parts" />
             <div className="wo-detail-grid">
               <DetailBlock label="Required Equipment List" value={pm.requiredEquipment ?? ''} />
-              <DetailBlock label="Spare Parts List" value={pm.sparePartsList ?? ''} />
+              <DetailBlock
+                label={pm.pmType === 'Replacement' ? 'Part yang di-replace' : 'Spare Parts List'}
+                value={pm.sparePartsList ?? ''}
+              />
             </div>
           </section>
 

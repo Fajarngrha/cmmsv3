@@ -6,8 +6,8 @@ interface SchedulePMModalProps {
   onSuccess: () => void
 }
 
-const PM_TYPES = ['Lubrication', 'Routine Inspection', 'Calibration', 'Cleaning', 'Oil Change', 'Safety Check', 'Monthly Inspection', 'Other']
-const PM_CATEGORIES = ['Periodic Maintenance', 'Preventive Maintenance', 'System Cleaning', 'Inspection', 'Other']
+const PM_TYPES = ['Lubrication', 'Inspection', 'Calibration', 'Cleaning', 'Oil Change', 'Tightening','Replacement','Other']
+const PM_CATEGORIES = ['Predictive Maintenance', 'Preventive Maintenance', 'Corective Maintenance']
 const FREQUENCIES = ['Daily', 'Weekly', 'Monthly', 'Quarterly', 'Annually', 'Operating Hours']
 const PRIORITIES = ['Critical', 'High', 'Medium', 'Low']
 const PM_STATUSES = ['Scheduled', 'In Progress', 'Completed', 'Postponed', 'Cancelled']
@@ -31,9 +31,9 @@ export function SchedulePMModal({ onClose, onSuccess }: SchedulePMModalProps) {
   const [scheduledDate, setScheduledDate] = useState('')
   const [frequency, setFrequency] = useState('')
   const [assignedTo, setAssignedTo] = useState('')
-  const [manpower, setManpower] = useState<number | ''>(1)
-  const [shiftSchedule, setShiftSchedule] = useState('')
-  const [requiredEquipment, setRequiredEquipment] = useState('')
+  const [manpower] = useState<number | ''>(1)
+  const [shiftSchedule] = useState('')
+  const [requiredEquipment] = useState('')
   const [sparePartsList, setSparePartsList] = useState('')
   const [detailedInstructions, setDetailedInstructions] = useState('')
   const [priority, setPriority] = useState('')
@@ -53,6 +53,12 @@ export function SchedulePMModal({ onClose, onSuccess }: SchedulePMModalProps) {
       .catch(() => {})
   }, [])
 
+  useEffect(() => {
+    if (pmType !== 'Replacement' && sparePartsList) {
+      setSparePartsList('')
+    }
+  }, [pmType, sparePartsList])
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
@@ -70,6 +76,10 @@ export function SchedulePMModal({ onClose, onSuccess }: SchedulePMModalProps) {
     }
     if (!assignedTo.trim()) {
       setError('Responsible Technician wajib diisi.')
+      return
+    }
+    if (pmType === 'Replacement' && !sparePartsList.trim()) {
+      setError('Part yang di-replace wajib diisi untuk PM Type Replacement.')
       return
     }
     setSubmitting(true)
@@ -100,8 +110,16 @@ export function SchedulePMModal({ onClose, onSuccess }: SchedulePMModalProps) {
       }),
     })
       .then((r) => {
-        if (!r.ok) return r.json().then((e) => { throw new Error(e.error || 'Gagal menyimpan') })
-        return r.json()
+        if (!r.ok) {
+          return r.text().then((t) => {
+            try {
+              const j = t ? JSON.parse(t) : null
+              throw new Error((j as any)?.error || 'Gagal menyimpan')
+            } catch {
+              throw new Error(t || 'Gagal menyimpan')
+            }
+          })
+        }
       })
       .then(() => onSuccess())
       .catch((err) => setError(err.message || 'Gagal menyimpan schedule PM.'))
@@ -175,6 +193,20 @@ export function SchedulePMModal({ onClose, onSuccess }: SchedulePMModalProps) {
               ))}
             </select>
           </div>
+          {pmType === 'Replacement' && (
+            <div className="form-group">
+              <label className="label" htmlFor="replacementPart">Part yang di-replacement *</label>
+              <input
+                id="replacementPart"
+                className="input"
+                value={sparePartsList}
+                onChange={(e) => setSparePartsList(e.target.value)}
+                placeholder="Bearing,V-Belt, Cylinder, Filter oli..."
+                required
+              />
+            </div>
+          )}
+
           <div className="form-group">
             <label className="label" htmlFor="pmCategory">PM Category</label>
             <select id="pmCategory" className="select" value={pmCategory} onChange={(e) => setPmCategory(e.target.value)}>
@@ -188,6 +220,7 @@ export function SchedulePMModal({ onClose, onSuccess }: SchedulePMModalProps) {
             <label className="label" htmlFor="activity">Activity / Deskripsi Pekerjaan *</label>
             <input id="activity" className="input" value={activity} onChange={(e) => setActivity(e.target.value)} placeholder="e.g. Monthly Inspection, Lubrication" required />
           </div>
+          
 
           {/* 3. Date and Time */}
           <SectionTitle title="3. Date and Time" />
@@ -211,17 +244,17 @@ export function SchedulePMModal({ onClose, onSuccess }: SchedulePMModalProps) {
             <label className="label" htmlFor="assignedTo">Responsible Technician / Personnel *</label>
             <input id="assignedTo" className="input" value={assignedTo} onChange={(e) => setAssignedTo(e.target.value)} placeholder="Nama teknisi" required />
           </div>
-          <div className="form-group">
+          {/* <div className="form-group">
             <label className="label" htmlFor="manpower">Manpower (jumlah orang)</label>
             <input id="manpower" className="input" type="number" min={1} value={manpower} onChange={(e) => setManpower(e.target.value === '' ? '' : Number(e.target.value))} />
           </div>
           <div className="form-group">
             <label className="label" htmlFor="shiftSchedule">Shift Work Schedule</label>
             <textarea id="shiftSchedule" className="textarea" rows={2} value={shiftSchedule} onChange={(e) => setShiftSchedule(e.target.value)} placeholder="Jadwal shift jika lebih dari satu shift" />
-          </div>
+          </div> */}
 
           {/* 5. Equipment and Spare Parts */}
-          <SectionTitle title="5. Equipment and Spare Parts" />
+          {/* <SectionTitle title="5. Equipment and Spare Parts" />
           <div className="form-group">
             <label className="label" htmlFor="requiredEquipment">Required Equipment List</label>
             <textarea id="requiredEquipment" className="textarea" rows={3} value={requiredEquipment} onChange={(e) => setRequiredEquipment(e.target.value)} placeholder="Alat yang dibutuhkan (satu per baris): kunci, alat kalibrasi, dll." />
@@ -229,17 +262,17 @@ export function SchedulePMModal({ onClose, onSuccess }: SchedulePMModalProps) {
           <div className="form-group">
             <label className="label" htmlFor="sparePartsList">Spare Parts List</label>
             <textarea id="sparePartsList" className="textarea" rows={3} value={sparePartsList} onChange={(e) => setSparePartsList(e.target.value)} placeholder="Spare part yang dibutuhkan: filter, bearing, belt, dll." />
-          </div>
+          </div> */}
 
           {/* 6. Instructions */}
-          <SectionTitle title="6. Instructions or Work Guidelines" />
+          <SectionTitle title="5. Instructions or Work Guidelines" />
           <div className="form-group">
             <label className="label" htmlFor="detailedInstructions">Detailed Instructions</label>
             <textarea id="detailedInstructions" className="textarea" rows={4} value={detailedInstructions} onChange={(e) => setDetailedInstructions(e.target.value)} placeholder="Langkah-langkah pelaksanaan PM" />
           </div>
 
           {/* 7. Priority */}
-          <SectionTitle title="7. Priority" />
+          <SectionTitle title="6. Priority" />
           <div className="form-group">
             <label className="label" htmlFor="priority">PM Priority</label>
             <select id="priority" className="select" value={priority} onChange={(e) => setPriority(e.target.value)}>
@@ -251,7 +284,7 @@ export function SchedulePMModal({ onClose, onSuccess }: SchedulePMModalProps) {
           </div>
 
           {/* 8. PM Status */}
-          <SectionTitle title="8. PM Status" />
+          <SectionTitle title="7. PM Status" />
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
             <div className="form-group">
               <label className="label" htmlFor="pmStatus">PM Status</label>
@@ -272,7 +305,7 @@ export function SchedulePMModal({ onClose, onSuccess }: SchedulePMModalProps) {
           </div>
 
           {/* 9. Notifications and Reminders */}
-          <SectionTitle title="9. Notifications and Reminders" />
+          <SectionTitle title="8. Notifications and Reminders" />
           <div className="form-group" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <input type="checkbox" id="reminderEnabled" checked={reminderEnabled} onChange={(e) => setReminderEnabled(e.target.checked)} />
             <label className="label" htmlFor="reminderEnabled" style={{ marginBottom: 0 }}>Reminder Notifications (email/WhatsApp)</label>
@@ -283,14 +316,14 @@ export function SchedulePMModal({ onClose, onSuccess }: SchedulePMModalProps) {
           </div>
 
           {/* 10. Additional Notes */}
-          <SectionTitle title="10. Additional Notes" />
+          <SectionTitle title="9. Additional Notes" />
           <div className="form-group">
             <label className="label" htmlFor="specialNotes">Special Notes</label>
             <textarea id="specialNotes" className="textarea" rows={2} value={specialNotes} onChange={(e) => setSpecialNotes(e.target.value)} placeholder="Catatan khusus atau instruksi tambahan" />
           </div>
 
           {/* 11. Documentation (placeholder) */}
-          <SectionTitle title="11. Documentation and Reports" />
+          <SectionTitle title="10. Documentation and Reports" />
           <div className="form-group">
             <label className="label">Photo / Documentation Upload</label>
             <input type="file" className="input" accept="image/*,.pdf" multiple style={{ fontSize: '0.85rem' }} />
