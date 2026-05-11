@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { apiUrl } from '../api'
+import { apiUrl, apiFetch } from '../api'
 import {
   LineChart,
   Line,
@@ -102,11 +102,11 @@ export function Dashboard() {
 
   useEffect(() => {
     Promise.all([
-      fetch(apiUrl('/api/dashboard/kpis')).then((r) => r.json()),
-      fetch(apiUrl('/api/dashboard/upcoming-pm')).then((r) => r.json()),
-      fetch(apiUrl('/api/permintaan-perbaikan')).then((r) => r.json()),
-      fetch(apiUrl('/api/purchase-orders')).then((r) => r.json()),
-      fetch(apiUrl('/api/assets')).then((r) => r.json()),
+      apiFetch(apiUrl('/api/dashboard/kpis')).then((r) => r.json()),
+      apiFetch(apiUrl('/api/dashboard/upcoming-pm')).then((r) => r.json()),
+      apiFetch(apiUrl('/api/permintaan-perbaikan')).then((r) => r.json()),
+      apiFetch(apiUrl('/api/purchase-orders')).then((r) => r.json()),
+      apiFetch(apiUrl('/api/assets')).then((r) => r.json()),
     ]).then(([k, u, woList, poList, assetList]) => {
       setKpis(k)
       setUpcomingPM(u || [])
@@ -459,7 +459,7 @@ export function Dashboard() {
           permintaanPerbaikanId={viewWoId}
           onClose={() => setViewWoId(null)}
           onSuccess={() => {
-            fetch(apiUrl('/api/permintaan-perbaikan'))
+            apiFetch(apiUrl('/api/permintaan-perbaikan'))
               .then((r) => r.json())
               .then(setPermintaanPerbaikan)
             setViewWoId(null)

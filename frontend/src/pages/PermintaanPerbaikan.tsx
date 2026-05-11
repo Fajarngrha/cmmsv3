@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { apiUrl } from '../api'
+import { apiUrl, apiFetch } from '../api'
 import { CreatePermintaanPerbaikanModal } from '../components/CreatePermintaanPerbaikanModal'
 import { ViewPermintaanPerbaikanModal } from '../components/ViewPermintaanPerbaikanModal'
 import { exportToCsv, type CsvColumn } from '../utils/exportToCsv'
@@ -58,7 +58,7 @@ export function PermintaanPerbaikan() {
   }, [actionMenuOpenId])
 
   const load = () => {
-    fetch(apiUrl('/api/permintaan-perbaikan'))
+    apiFetch(apiUrl('/api/permintaan-perbaikan'))
       .then((r) => r.json())
       .then((data) => {
         setList(data)
@@ -332,7 +332,7 @@ export function PermintaanPerbaikan() {
                             onClick={() => {
                               setActionMenuOpenId(null)
                               if (window.confirm(`Hapus permintaan perbaikan ${wo.woId}?`)) {
-                                fetch(apiUrl(`/api/permintaan-perbaikan/${wo.id}`), { method: 'DELETE' })
+                                apiFetch(apiUrl(`/api/permintaan-perbaikan/${wo.id}`), { method: 'DELETE' })
                                   .then((r) => { if (r.ok) load() })
                                   .catch(() => {})
                               }

@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react'
-import { apiUrl } from '../api'
+import { apiUrl, apiFetch } from '../api'
 import { hitungUsiaMesin } from '../utils/assetAge'
 
 interface CreateAssetModalProps {
@@ -24,6 +24,9 @@ export function CreateAssetModal({ onClose, onSuccess }: CreateAssetModalProps) 
   const [assetId, setAssetId] = useState('')
   const [name, setName] = useState('')
   const [section, setSection] = useState('')
+  const [maker, setMaker] = useState('')
+  const [model, setModel] = useState('')
+  const [flowCapacity, setFlowCapacity] = useState('')
   const [installedMonth, setInstalledMonth] = useState('')
   const [installedYear, setInstalledYear] = useState('')
   const [lastPmDate, setLastPmDate] = useState('')
@@ -35,6 +38,18 @@ export function CreateAssetModal({ onClose, onSuccess }: CreateAssetModalProps) 
     if (!installedMonth || !installedYear) return ''
     return `${installedYear}-${String(installedMonth).padStart(2, '0')}-01`
   }, [installedMonth, installedYear])
+  const isCompressorAsset = useMemo(() => {
+    const keyword = name.trim().toLowerCase()
+    return keyword.includes('compressor') || keyword.includes('kompressor')
+  }, [name])
+  const parsedFlowCapacity = useMemo(() => {
+    const value = flowCapacity.trim()
+    if (!value) return undefined
+    const normalized = value.replace(',', '.')
+    const num = Number(normalized)
+    if (!Number.isFinite(num) || num < 0) return NaN
+    return num
+  }, [flowCapacity])
   const usiaMesin = useMemo(() => hitungUsiaMesin(installedAtValue), [installedAtValue])
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -52,8 +67,22 @@ export function CreateAssetModal({ onClose, onSuccess }: CreateAssetModalProps) 
       setError('Bulan & Tahun instalasi wajib dipilih.')
       return
     }
+    if (isCompressorAsset) {
+      if (!maker.trim()) {
+        setError('Maker wajib diisi untuk asset kompresor.')
+        return
+      }
+      if (!model.trim()) {
+        setError('Model wajib diisi untuk asset kompresor.')
+        return
+      }
+      if (flowCapacity.trim() && Number.isNaN(parsedFlowCapacity)) {
+        setError('Kapasitas Debit harus berupa angka valid.')
+        return
+      }
+    }
     setSubmitting(true)
-    fetch(apiUrl('/api/assets'), {
+    apiFetch(apiUrl('/api/assets'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -63,6 +92,9 @@ export function CreateAssetModal({ onClose, onSuccess }: CreateAssetModalProps) 
         lastPmDate: lastPmDate.trim() || undefined,
         nextPmDate: nextPmDate.trim() || undefined,
         installedAt: installedAtValue,
+        maker: maker.trim() || undefined,
+        model: model.trim() || undefined,
+        flowCapacity: flowCapacity.trim() ? parsedFlowCapacity : undefined,
       }),
     })
       .then((r) => {
@@ -134,6 +166,48 @@ export function CreateAssetModal({ onClose, onSuccess }: CreateAssetModalProps) 
               ))}
             </select>
           </div>
+          {isCompressorAsset && (
+            <>
+              <div className="form-group">
+                <label className="label" htmlFor="maker">Maker *</label>
+                <input
+                  id="maker"
+                  className="input"
+                  type="text"
+                  value={maker}
+                  onChange={(e) => setMaker(e.target.value)}
+                  placeholder="e.g. Atlas Copco"
+                  required={isCompressorAsset}
+                />
+              </div>
+              <div className="form-group">
+                <label className="label" htmlFor="model">Model *</label>
+                <input
+                  id="model"
+                  className="input"
+                  type="text"
+                  value={model}
+                  onChange={(e) => setModel(e.target.value)}
+                  placeholder="e.g. GA 37+"
+                  required={isCompressorAsset}
+                />
+              </div>
+              <div className="form-group">
+                <label className="label" htmlFor="flowCapacity">Kapasitas Debit (m³/Min)</label>
+                <input
+                  id="flowCapacity"
+                  className="input"
+                  type="number"
+                  inputMode="decimal"
+                  min="0"
+                  step="0.01"
+                  value={flowCapacity}
+                  onChange={(e) => setFlowCapacity(e.target.value)}
+                  placeholder="e.g. 6.5"
+                />
+              </div>
+            </>
+          )}
           <div className="form-group">
             <label className="label">Bulan & Tahun Instalasi</label>
             <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>

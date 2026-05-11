@@ -17,6 +17,7 @@
 | `schema-postgres.sql` | DDL: buat semua tabel + ENUM + trigger di PostgreSQL |
 | `seed-postgres.sql` | Data awal (assets, WO, spare parts, PO, PM) |
 | `migration-po-no-registrasi-seq.sql` | Migration: tabel counter no_registrasi PO (menghilangkan duplicate key) |
+| `migration-assets-compressor-fields.sql` | Migration: tambah kolom `maker`, `model`, `flow_capacity` pada `assets` |
 | `grant-permissions-cmms_dbv3.sql` | Grant hak akses ke user cmms_userv3 (database cmms_dbv3) |
 | **MySQL** | |
 | `schema.sql` | DDL: buat database dan semua tabel |
@@ -26,7 +27,7 @@
 
 | Tabel | Keterangan singkat |
 |-------|---------------------|
-| `assets` | Mesin/aset (nama, section, health, last/next PM, **installed_at** untuk usia mesin) |
+| `assets` | Mesin/aset (nama, section, maker/model/flow_capacity untuk kompresor, health, last/next PM, **installed_at** untuk usia mesin) |
 | `permintaan_perbaikan` | Permintaan perbaikan (WO); **section**, **created_at** dipakai filter Dashboard (Period/Section) |
 | `spare_parts` | Spare part & stok (spec, for_machine) |
 | `purchase_orders` | PO; **tanggal** dipakai filter Dashboard & fitur History banding harga supplier |
@@ -91,6 +92,13 @@ ALTER TABLE assets ADD COLUMN IF NOT EXISTS installed_at DATE NULL;
 COMMENT ON COLUMN assets.installed_at IS 'Tanggal instalasi mesin (untuk hitung usia mesin)';
 ```
 
+Jika tabel `assets` sudah ada tanpa kolom kompresor (`maker`, `model`, `flow_capacity`):
+
+```bash
+sudo -u postgres psql -d cmms_dbv3 -f backend/database/migration-assets-compressor-fields.sql
+sudo -u postgres psql -d cmms_dbv3 -v ON_ERROR_STOP=1 -f backend/database/grant-permissions-cmms_dbv3.sql
+```
+
 Jika tabel `upcoming_pm` sudah ada tanpa kolom keterangan:
 
 ```sql
@@ -146,7 +154,7 @@ Koneksi Node: `npm install mysql2`, gunakan `DATABASE_URL=mysql://...` atau `DB_
 ## Mapping ke mock & fitur aplikasi
 
 - `WorkOrder` / Permintaan perbaikan → `permintaan_perbaikan` (section, created_at untuk filter Dashboard)
-- `Asset` → `assets` (**installed_at** untuk hitung usia mesin di form/tabel/View)
+- `Asset` → `assets` (**installed_at** untuk hitung usia mesin + `maker/model/flow_capacity` untuk data kompresor)
 - `SparePart` → `spare_parts` (spec, for_machine)
 - `PurchaseOrder` → `purchase_orders` (tanggal untuk filter & History PO)
 - `UpcomingPM` → `upcoming_pm` (asset_name untuk filter by section)

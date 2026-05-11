@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { apiUrl } from '../api'
+import { apiUrl, apiFetch } from '../api'
 
 interface AddSparePartModalProps {
   onClose: () => void
@@ -33,7 +33,7 @@ export function AddSparePartModal({ onClose, onSuccess }: AddSparePartModalProps
       return
     }
     setSubmitting(true)
-    fetch(apiUrl('/api/inventory/spare-parts'), {
+    apiFetch(apiUrl('/api/inventory/spare-parts'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({

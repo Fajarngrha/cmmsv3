@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
-import { apiUrl } from '../api'
+import { apiUrl, apiFetch } from '../api'
 import { AddSparePartModal } from '../components/AddSparePartModal'
 import { EditSparePartModal } from '../components/EditSparePartModal'
 import { IssueSparePartModal } from '../components/IssueSparePartModal'
@@ -80,7 +80,7 @@ export function Inventory() {
   const actionMenuRef = useRef<HTMLDivElement>(null)
 
   const load = () => {
-    fetch(apiUrl('/api/inventory/spare-parts'))
+    apiFetch(apiUrl('/api/inventory/spare-parts'))
       .then((r) => r.json())
       .then((data) => {
         setParts(data)
@@ -91,7 +91,7 @@ export function Inventory() {
 
   const loadHistory = () => {
     const q = historyTypeFilter === 'all' ? '' : `?type=${historyTypeFilter}`
-    fetch(apiUrl(`/api/inventory/spare-parts/history${q}`))
+    apiFetch(apiUrl(`/api/inventory/spare-parts/history${q}`))
       .then((r) => r.json())
       .then((data) => setHistory(Array.isArray(data) ? data : []))
       .catch(() => setHistory([]))
@@ -154,7 +154,7 @@ export function Inventory() {
           setImportMessage({ type: 'err', text: 'Tidak ada baris valid (Nama dan Category wajib).' })
           return
         }
-        fetch(apiUrl('/api/inventory/spare-parts/import'), {
+        apiFetch(apiUrl('/api/inventory/spare-parts/import'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ parts: payload }),
@@ -223,7 +223,7 @@ export function Inventory() {
     if (!Number.isInteger(qty) || qty <= 0) {
       return
     }
-    fetch(apiUrl(`/api/inventory/spare-parts/${partId}/receive`), {
+    apiFetch(apiUrl(`/api/inventory/spare-parts/${partId}/receive`), {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ qty }),
@@ -500,7 +500,7 @@ export function Inventory() {
                                     setReceivePartId(null)
                                     setReceiveQty('')
                                     if (window.confirm(`Hapus spare part ${p.partCode} (${p.name})?`)) {
-                                      fetch(apiUrl(`/api/inventory/spare-parts/${p.id}`), { method: 'DELETE' })
+                                      apiFetch(apiUrl(`/api/inventory/spare-parts/${p.id}`), { method: 'DELETE' })
                                         .then((r) => {
                                           if (r.ok) {
                                             load()
@@ -607,7 +607,7 @@ export function Inventory() {
                     : 'history Keluar'
               if (!window.confirm(`Hapus ${scopeLabel}?`)) return
               const q = historyTypeFilter === 'all' ? '' : `?type=${historyTypeFilter}`
-              fetch(apiUrl(`/api/inventory/spare-parts/history${q}`), { method: 'DELETE' })
+              apiFetch(apiUrl(`/api/inventory/spare-parts/history${q}`), { method: 'DELETE' })
                 .then((r) => {
                   if (r.ok) {
                     loadHistory()

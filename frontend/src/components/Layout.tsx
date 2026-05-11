@@ -1,9 +1,10 @@
-import { ReactNode, useState } from 'react'
-import { NavLink, useLocation, useSearchParams } from 'react-router-dom'
+import { useState } from 'react'
+import { NavLink, Outlet, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
+import { useAuth } from '../context/AuthContext'
 
 const SIDEBAR_COLLAPSED_KEY = 'cmms-sidebar-collapsed'
 
-export function Layout({ children }: { children: ReactNode }) {
+export function Layout() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
     try {
@@ -34,7 +35,7 @@ export function Layout({ children }: { children: ReactNode }) {
       />
       <div className="main-content">
         <Header onMenuClick={() => setSidebarOpen(true)} />
-        {children}
+        <Outlet />
       </div>
     </div>
   )
@@ -129,6 +130,8 @@ const SECTION_OPTIONS = [
 ]
 
 export function Header({ onMenuClick }: { onMenuClick?: () => void }) {
+  const { username, displayName, logout, loginRequired } = useAuth()
+  const navigate = useNavigate()
   const location = useLocation()
   const [searchParams, setSearchParams] = useSearchParams()
   const titles: Record<string, string> = {
@@ -199,9 +202,23 @@ export function Header({ onMenuClick }: { onMenuClick?: () => void }) {
         <button type="button" className="btn btn-primary" onClick={() => window.location.reload()}>
           ↻ Refresh
         </button>
-        <div className="header-user" role="button" tabIndex={0} aria-label="User menu">
-          <span className="header-avatar">👤</span>
-          <span>▼</span>
+        <div className="header-user" aria-label="Pengguna">
+          <span className="header-avatar" aria-hidden="true">
+            👤
+          </span>
+          <span className="header-user-name">{displayName || username || 'Pengguna'}</span>
+          {loginRequired ? (
+            <button
+              type="button"
+              className="header-logout"
+              onClick={() => {
+                logout()
+                navigate('/login', { replace: true })
+              }}
+            >
+              Keluar
+            </button>
+          ) : null}
         </div>
       </div>
     </header>

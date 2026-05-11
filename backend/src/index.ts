@@ -14,6 +14,8 @@ import { permintaanPerbaikanRouter } from './routes/permintaanPerbaikan.js'
 import { assetsRouter } from './routes/assets.js'
 import { inventoryRouter } from './routes/inventory.js'
 import { purchaseOrdersRouter } from './routes/purchaseOrders.js'
+import { authRouter, isLoginConfigured, verifyRequestAuth } from './routes/auth.js'
+import { loadAuthSettings, getAuthState } from './auth/mode.js'
 import { query, getConnectionInfo } from './db/index.js'
 
 const app = express()
@@ -23,6 +25,26 @@ const HOST = process.env.HOST || '0.0.0.0'
 app.use(cors())
 app.use(express.json({ limit: '10mb' }))
 app.use(express.urlencoded({ extended: true, limit: '10mb' }))
+
+app.use('/api/auth', authRouter)
+
+app.use('/api', (req, res, next) => {
+  if (!isLoginConfigured()) {
+    next()
+    return
+  }
+  const p = req.path || '/'
+  if (p === '/health' || p.startsWith('/auth')) {
+    next()
+    return
+  }
+  if (!verifyRequestAuth(req.get('authorization'))) {
+    res.status(401).json({ error: 'Unauthorized', code: 'AUTH_REQUIRED' })
+    return
+  }
+  next()
+})
+
 app.use('/api', dashboardRouter)
 app.use('/api', permintaanPerbaikanRouter)
 app.use('/api', assetsRouter)
@@ -49,6 +71,17 @@ async function start() {
     if (tbl.rows.length === 0) {
       console.warn(
         '[CMMS] Peringatan: Tabel po_no_registrasi_seq tidak ada. Buat PO bisa error duplicate no_registrasi. Jalankan: sudo -u postgres psql -d cmms_dbv3 -f backend/database/migration-po-no-registrasi-seq.sql'
+      )
+    }
+    await loadAuthSettings()
+    const auth = getAuthState()
+    if (auth.authMode === 'db') {
+      console.log('[CMMS] Login: multi-user (PostgreSQL cmms_app_users). Token independen per sesi.')
+    } else if (auth.authMode === 'env') {
+      console.log('[CMMS] Login: satu akun dari env (CMMS_AUTH_USERNAME).')
+    } else if (auth.bootstrapAllowed) {
+      console.log(
+        '[CMMS] Tabel cmms_app_users ada tanpa pengguna: daftarkan akun pertama via POST /api/auth/register atau npm run user:create'
       )
     }
   } catch (e) {

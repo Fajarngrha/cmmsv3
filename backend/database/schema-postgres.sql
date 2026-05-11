@@ -53,6 +53,9 @@ CREATE TABLE assets (
   asset_id VARCHAR(50) NOT NULL,
   name VARCHAR(255) NOT NULL,
   section VARCHAR(100) NOT NULL,
+  maker VARCHAR(255) NULL,
+  model VARCHAR(255) NULL,
+  flow_capacity DECIMAL(10,2) NULL,
   health asset_health NOT NULL DEFAULT 'Running',
   last_pm_date DATE,
   next_pm_date DATE,
@@ -68,6 +71,7 @@ CREATE INDEX idx_assets_health ON assets (health);
 
 COMMENT ON COLUMN assets.asset_id IS 'e.g. AST-001';
 COMMENT ON COLUMN assets.installed_at IS 'Tanggal instalasi mesin (untuk hitung usia mesin)';
+COMMENT ON COLUMN assets.flow_capacity IS 'Kapasitas debit kompresor (m3/Min)';
 
 -- ------------------------------------------------------------
 -- Tabel: permintaan_perbaikan (dulu work_orders)

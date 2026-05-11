@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { apiUrl } from '../api'
+import { apiUrl, apiFetch } from '../api'
 
 interface SchedulePMModalProps {
   onClose: () => void
@@ -47,7 +47,7 @@ export function SchedulePMModal({ onClose, onSuccess }: SchedulePMModalProps) {
 
   const [assets, setAssets] = useState<{ id: string; assetId: string; name: string; section: string }[]>([])
   useEffect(() => {
-    fetch(apiUrl('/api/assets'))
+    apiFetch(apiUrl('/api/assets'))
       .then((r) => r.json())
       .then((data) => setAssets(data || []))
       .catch(() => {})
@@ -73,7 +73,7 @@ export function SchedulePMModal({ onClose, onSuccess }: SchedulePMModalProps) {
       return
     }
     setSubmitting(true)
-    fetch(apiUrl('/api/dashboard/pm-schedule'), {
+    apiFetch(apiUrl('/api/dashboard/pm-schedule'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({

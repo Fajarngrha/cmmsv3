@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { apiUrl } from '../api'
+import { apiUrl, apiFetch } from '../api'
 import { CreatePOModal } from '../components/CreatePOModal'
 import { HistoryPOModal } from '../components/HistoryPOModal'
 import { ViewPOModal } from '../components/ViewPOModal'
@@ -40,7 +40,7 @@ export function TrackingPO() {
   const [loading, setLoading] = useState(true)
 
   const load = () => {
-    fetch(apiUrl('/api/purchase-orders'))
+    apiFetch(apiUrl('/api/purchase-orders'))
       .then((r) => r.json())
       .then((data) => {
         setList(data)
@@ -183,7 +183,7 @@ export function TrackingPO() {
                         style={{ padding: '0.35rem 0.65rem', fontSize: '0.8rem', background: '#fee2e2', color: '#991b1b', border: '1px solid #fecaca' }}
                         onClick={() => {
                           if (window.confirm(`Hapus PO ${po.noRegistrasi}?`)) {
-                            fetch(apiUrl(`/api/purchase-orders/${po.id}`), { method: 'DELETE' })
+                            apiFetch(apiUrl(`/api/purchase-orders/${po.id}`), { method: 'DELETE' })
                               .then((r) => { if (r.ok) load() })
                               .catch(() => {})
                           }

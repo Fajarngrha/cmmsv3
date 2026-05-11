@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { apiUrl } from '../api'
+import { apiUrl, apiFetch } from '../api'
 import { CreateAssetModal } from '../components/CreateAssetModal'
 import { ViewAssetModal } from '../components/ViewAssetModal'
 import { hitungUsiaMesin } from '../utils/assetAge'
@@ -10,6 +10,9 @@ interface Asset {
   assetId: string
   name: string
   section: string
+  maker?: string
+  model?: string
+  flowCapacity?: number
   health: 'Running' | 'Warning' | 'Breakdown'
   lastPmDate: string
   nextPmDate: string
@@ -39,6 +42,9 @@ export function Assets() {
         'Asset ID': 'AST-001',
         Nama: 'Contoh Mesin',
         Section: 'Molding',
+        Maker: '',
+        Model: '',
+        'Kapasitas Debit (m3/Min)': '',
         'Last PM': today,
         'Next PM': today,
         Health: 'Running',
@@ -49,6 +55,9 @@ export function Assets() {
       { header: 'Asset ID', key: 'Asset ID' },
       { header: 'Nama', key: 'Nama' },
       { header: 'Section', key: 'Section' },
+      { header: 'Maker', key: 'Maker' },
+      { header: 'Model', key: 'Model' },
+      { header: 'Kapasitas Debit (m3/Min)', key: 'Kapasitas Debit (m3/Min)' },
       { header: 'Last PM', key: 'Last PM' },
       { header: 'Next PM', key: 'Next PM' },
       { header: 'Health', key: 'Health' },
@@ -59,7 +68,7 @@ export function Assets() {
   }
 
   const load = () => {
-    fetch(apiUrl('/api/assets'))
+    apiFetch(apiUrl('/api/assets'))
       .then((r) => r.json())
       .then((data) => {
         setAssets(data)
@@ -103,6 +112,14 @@ export function Assets() {
             assetId: (r['Asset ID'] ?? r['assetId'] ?? '').trim() || undefined,
             name: (r['Nama'] ?? r['name'] ?? '').trim(),
             section: (r['Section'] ?? r['section'] ?? '').trim(),
+            maker: (r['Maker'] ?? r['maker'] ?? '').trim() || undefined,
+            model: (r['Model'] ?? r['model'] ?? '').trim() || undefined,
+            flowCapacity: (() => {
+              const raw = (r['Kapasitas Debit (m3/Min)'] ?? r['Kapasitas Debit (m³/Min)'] ?? r['flowCapacity'] ?? '').trim()
+              if (!raw) return undefined
+              const value = Number(raw.replace(',', '.'))
+              return Number.isFinite(value) ? value : undefined
+            })(),
             lastPmDate: (r['Last PM'] ?? r['lastPmDate'] ?? '').trim() || undefined,
             nextPmDate: (r['Next PM'] ?? r['nextPmDate'] ?? '').trim() || undefined,
             health: normalizeHealth(r['Health'] ?? r['health'] ?? ''),
@@ -113,7 +130,7 @@ export function Assets() {
           setImportMessage({ type: 'err', text: 'Tidak ada baris valid (Nama dan Section wajib).' })
           return
         }
-        fetch(apiUrl('/api/assets/import'), {
+        apiFetch(apiUrl('/api/assets/import'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ assets: payload }),
@@ -196,6 +213,9 @@ export function Assets() {
               { header: 'Asset No', key: 'assetId' },
               { header: 'Nama', key: 'name' },
               { header: 'Section', key: 'section' },
+              { header: 'Maker', key: 'maker' },
+              { header: 'Model', key: 'model' },
+              { header: 'Kapasitas Debit (m3/Min)', getValue: (a) => (a.flowCapacity != null ? String(a.flowCapacity) : '') },
               { header: 'Usia Mesin', getValue: (a) => hitungUsiaMesin(a.installedAt) },
               { header: 'Last PM', key: 'lastPmDate' },
               { header: 'Next PM', key: 'nextPmDate' },
@@ -312,7 +332,7 @@ export function Assets() {
                           style={{ padding: '0.35rem 0.65rem', fontSize: '0.8rem', background: '#fee2e2', color: '#991b1b', border: '1px solid #fecaca' }}
                           onClick={() => {
                             if (window.confirm(`Hapus asset ${a.assetId} (${a.name})?`)) {
-                              fetch(apiUrl(`/api/assets/${a.id}`), { method: 'DELETE' })
+                              apiFetch(apiUrl(`/api/assets/${a.id}`), { method: 'DELETE' })
                                 .then((r) => { if (r.ok) load() })
                                 .catch(() => {})
                             }

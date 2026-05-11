@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { apiUrl } from '../api'
+import { apiUrl, apiFetch } from '../api'
 
 const JENIS_TINDAKAN_OPTIONS = [
   'Repair',
@@ -82,7 +82,7 @@ export function ViewPermintaanPerbaikanModal({ permintaanPerbaikanId, onClose, o
   const fetchWo = () => {
     setLoading(true)
     setError('')
-    fetch(apiUrl(apiBase))
+    apiFetch(apiUrl(apiBase))
       .then((r) => {
         if (!r.ok) throw new Error('Permintaan perbaikan tidak ditemukan')
         return r.json()
@@ -127,7 +127,7 @@ export function ViewPermintaanPerbaikanModal({ permintaanPerbaikanId, onClose, o
   const patchStatus = (payload: { status: string; pendingReason?: string; pmScheduledDate?: string }) => {
     setStatusChangeError('')
     setActionLoading(true)
-    fetch(apiUrl(apiBase), {
+    apiFetch(apiUrl(apiBase), {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
@@ -189,7 +189,7 @@ export function ViewPermintaanPerbaikanModal({ permintaanPerbaikanId, onClose, o
       return
     }
     setActionLoading(true)
-    fetch(apiUrl(apiBase), {
+    apiFetch(apiUrl(apiBase), {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({

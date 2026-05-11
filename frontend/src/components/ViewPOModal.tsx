@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { apiUrl } from '../api'
+import { apiUrl, apiFetch } from '../api'
 
 interface PurchaseOrder {
   id: string
@@ -40,7 +40,7 @@ export function ViewPOModal({ poId, onClose, onSuccess }: ViewPOModalProps) {
   const [error, setError] = useState('')
 
   useEffect(() => {
-    fetch(apiUrl(`/api/purchase-orders/${poId}`))
+    apiFetch(apiUrl(`/api/purchase-orders/${poId}`))
       .then((r) => {
         if (!r.ok) throw new Error('PO tidak ditemukan')
         return r.json()
@@ -60,7 +60,7 @@ export function ViewPOModal({ poId, onClose, onSuccess }: ViewPOModalProps) {
     if (!po) return
     setError('')
     setSaving(true)
-    fetch(apiUrl(`/api/purchase-orders/${poId}`), {
+    apiFetch(apiUrl(`/api/purchase-orders/${poId}`), {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({

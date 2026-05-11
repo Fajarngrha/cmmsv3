@@ -35,14 +35,29 @@ assetsRouter.post('/assets', async (req, res) => {
         const countResult = await query('SELECT COUNT(*)::int AS c FROM assets');
         const nextNum = (countResult.rows[0]?.c ?? 0) + 1;
         const nextAssetId = body.assetId?.trim() || `AST-${String(nextNum).padStart(3, '0')}`;
+        const normalizedName = body.name.trim().toLowerCase();
+        const isCompressorAsset = normalizedName.includes('compressor') || normalizedName.includes('kompressor');
+        if (isCompressorAsset && !body.maker?.trim()) {
+            return res.status(400).json({ error: 'Maker wajib diisi untuk asset kompresor.' });
+        }
+        if (isCompressorAsset && !body.model?.trim()) {
+            return res.status(400).json({ error: 'Model wajib diisi untuk asset kompresor.' });
+        }
+        if (body.flowCapacity != null &&
+            (!Number.isFinite(Number(body.flowCapacity)) || Number(body.flowCapacity) < 0)) {
+            return res.status(400).json({ error: 'Kapasitas Debit harus berupa angka valid.' });
+        }
         const today = new Date().toISOString().slice(0, 10);
         const lastPm = normalizeDateString(body.lastPmDate, today);
         const nextPm = normalizeDateString(body.nextPmDate, today);
-        const result = await query(`INSERT INTO assets (asset_id, name, section, health, last_pm_date, next_pm_date, uptime_percent, installed_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`, [
+        const result = await query(`INSERT INTO assets (asset_id, name, section, maker, model, flow_capacity, health, last_pm_date, next_pm_date, uptime_percent, installed_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *`, [
             nextAssetId,
             body.name.trim(),
             body.section.trim(),
+            body.maker?.trim() || null,
+            body.model?.trim() || null,
+            body.flowCapacity != null ? Number(body.flowCapacity) : null,
             health,
             lastPm,
             nextPm,
@@ -72,13 +87,23 @@ assetsRouter.post('/assets/import', async (req, res) => {
             nextNum += 1;
             const health = row.health && ['Running', 'Warning', 'Breakdown'].includes(row.health) ? row.health : 'Running';
             const nextAssetId = row.assetId?.trim() || `AST-${String(nextNum).padStart(3, '0')}`;
+            const normalizedName = row.name.trim().toLowerCase();
+            const isCompressorAsset = normalizedName.includes('compressor') || normalizedName.includes('kompressor');
+            if (isCompressorAsset && (!row.maker?.trim() || !row.model?.trim()))
+                continue;
+            if (row.flowCapacity != null &&
+                (!Number.isFinite(Number(row.flowCapacity)) || Number(row.flowCapacity) < 0))
+                continue;
             const lastPm = normalizeDateString(row.lastPmDate, today);
             const nextPm = normalizeDateString(row.nextPmDate, today);
-            const result = await query(`INSERT INTO assets (asset_id, name, section, health, last_pm_date, next_pm_date, uptime_percent, installed_at)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`, [
+            const result = await query(`INSERT INTO assets (asset_id, name, section, maker, model, flow_capacity, health, last_pm_date, next_pm_date, uptime_percent, installed_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *`, [
                 nextAssetId,
                 row.name.trim(),
                 row.section.trim(),
+                row.maker?.trim() || null,
+                row.model?.trim() || null,
+                row.flowCapacity != null ? Number(row.flowCapacity) : null,
                 health,
                 lastPm,
                 nextPm,

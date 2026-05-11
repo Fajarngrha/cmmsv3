@@ -32,9 +32,11 @@ ALTER TABLE spare_part_history OWNER TO cmms_userv3;
 ALTER TABLE purchase_orders OWNER TO cmms_userv3;
 ALTER TABLE po_no_registrasi_seq OWNER TO cmms_userv3;
 ALTER TABLE upcoming_pm OWNER TO cmms_userv3;
+ALTER TABLE cmms_app_users OWNER TO cmms_userv3;
 
 ALTER SEQUENCE IF EXISTS assets_id_seq OWNER TO cmms_userv3;
 ALTER SEQUENCE IF EXISTS permintaan_perbaikan_id_seq OWNER TO cmms_userv3;
 ALTER SEQUENCE IF EXISTS spare_parts_id_seq OWNER TO cmms_userv3;
 ALTER SEQUENCE IF EXISTS purchase_orders_id_seq OWNER TO cmms_userv3;
 ALTER SEQUENCE IF EXISTS upcoming_pm_id_seq OWNER TO cmms_userv3;
+ALTER SEQUENCE IF EXISTS cmms_app_users_id_seq OWNER TO cmms_userv3;

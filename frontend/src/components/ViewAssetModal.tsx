@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { apiUrl } from '../api'
+import { apiUrl, apiFetch } from '../api'
 import { hitungUsiaMesin, formatBulanTahunInstalasi } from '../utils/assetAge'
 
 interface Asset {
@@ -7,6 +7,9 @@ interface Asset {
   assetId: string
   name: string
   section: string
+  maker?: string
+  model?: string
+  flowCapacity?: number
   health: 'Running' | 'Warning' | 'Breakdown'
   lastPmDate: string
   nextPmDate: string
@@ -61,7 +64,7 @@ export function ViewAssetModal({ asset, onClose }: ViewAssetModalProps) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    fetch(apiUrl('/api/permintaan-perbaikan'))
+    apiFetch(apiUrl('/api/permintaan-perbaikan'))
       .then((r) => r.json())
       .then((data: WorkOrder[]) => {
         const assetNameKey = normalizeKey(asset.name)
@@ -124,6 +127,22 @@ export function ViewAssetModal({ asset, onClose }: ViewAssetModalProps) {
                 <span className="wo-detail-label">Section</span>
                 <span className="wo-detail-value">{asset.section}</span>
               </div>
+              {(asset.maker || asset.model || asset.flowCapacity != null) && (
+                <>
+                  <div className="wo-detail-row">
+                    <span className="wo-detail-label">Maker</span>
+                    <span className="wo-detail-value">{asset.maker || '—'}</span>
+                  </div>
+                  <div className="wo-detail-row">
+                    <span className="wo-detail-label">Model</span>
+                    <span className="wo-detail-value">{asset.model || '—'}</span>
+                  </div>
+                  <div className="wo-detail-row">
+                    <span className="wo-detail-label">Kapasitas Debit (m3/Min)</span>
+                    <span className="wo-detail-value">{asset.flowCapacity != null ? asset.flowCapacity : '—'}</span>
+                  </div>
+                </>
+              )}
               <div className="wo-detail-row">
                 <span className="wo-detail-label">Health</span>
                 <span className="wo-detail-value">{healthLabels[asset.health] ?? asset.health}</span>

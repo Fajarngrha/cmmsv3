@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { apiUrl } from '../api'
+import { apiUrl, apiFetch } from '../api'
 
 interface SparePart {
   id: string
@@ -47,7 +47,7 @@ export function EditSparePartModal({ part, onClose, onSuccess }: EditSparePartMo
     }
 
     setSubmitting(true)
-    fetch(apiUrl(`/api/inventory/spare-parts/${part.id}`), {
+    apiFetch(apiUrl(`/api/inventory/spare-parts/${part.id}`), {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({

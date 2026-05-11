@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { apiUrl } from '../api'
+import { apiUrl, apiFetch } from '../api'
 import { SchedulePMModal } from '../components/SchedulePMModal'
 import { ViewPMModal, type UpcomingPMDetail } from '../components/ViewPMModal'
 import { exportToCsv, type CsvColumn } from '../utils/exportToCsv'
@@ -30,8 +30,8 @@ export function PreventiveMaintenance() {
 
   const load = () => {
     Promise.all([
-      fetch(apiUrl('/api/dashboard/upcoming-pm')).then((r) => r.json()),
-      fetch(apiUrl('/api/dashboard/kpis')).then((r) => r.json()),
+      apiFetch(apiUrl('/api/dashboard/upcoming-pm')).then((r) => r.json()),
+      apiFetch(apiUrl('/api/dashboard/kpis')).then((r) => r.json()),
     ])
       .then(([pm, k]) => {
         setUpcomingPM(pm)
@@ -161,7 +161,7 @@ export function PreventiveMaintenance() {
                         style={{ padding: '0.35rem 0.65rem', fontSize: '0.8rem', background: '#fee2e2', color: '#991b1b', border: '1px solid #fecaca' }}
                         onClick={() => {
                           if (window.confirm(`Hapus jadwal PM ${pm.pmId} (${pm.assetName})?`)) {
-                            fetch(apiUrl(`/api/dashboard/upcoming-pm/${pm.id}`), { method: 'DELETE' })
+                            apiFetch(apiUrl(`/api/dashboard/upcoming-pm/${pm.id}`), { method: 'DELETE' })
                               .then((r) => { if (r.ok) load() })
                               .catch(() => {})
                           }

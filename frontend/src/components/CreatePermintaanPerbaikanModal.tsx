@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { apiUrl } from '../api'
+import { apiUrl, apiFetch } from '../api'
 
 interface CreatePermintaanPerbaikanModalProps {
   onClose: () => void
@@ -133,7 +133,7 @@ export function CreatePermintaanPerbaikanModal({ onClose, onSuccess }: CreatePer
       return
     }
     setSubmitting(true)
-    fetch(apiUrl('/api/permintaan-perbaikan'), {
+    apiFetch(apiUrl('/api/permintaan-perbaikan'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({

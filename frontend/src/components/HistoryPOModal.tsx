@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { apiUrl } from '../api'
+import { apiUrl, apiFetch } from '../api'
 
 interface PurchaseOrder {
   id: string
@@ -32,7 +32,7 @@ export function HistoryPOModal({ onClose }: HistoryPOModalProps) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    fetch(apiUrl('/api/purchase-orders'))
+    apiFetch(apiUrl('/api/purchase-orders'))
       .then((r) => r.json())
       .then((data: PurchaseOrder[]) => {
         setList(data || [])

@@ -66,6 +66,8 @@ Format ini lebih kecil ukurannya dan lebih cepat untuk restore, tapi tidak bisa 
 sudo -u postgres pg_dump -Fc -U cmms_userv3 -d cmms_dbv3 -f ~postgres/cmms_dbv3_backup_$(date +%Y%m%d).dump
 ```
 
+sudo -u postgres pg_dump -Fc -d cmms_dbv3 -f "/var/lib/postgresql/cmms_dbv3_backup_$(date +%Y%m%d).dump"
+
 File backup akan ada di: `/var/lib/postgresql/cmms_dbv3_backup_YYYYMMDD.dump`
 
 #### Opsi 2: Backup format SQL (.sql) - Plain Text
@@ -109,7 +111,7 @@ sudo -u postgres pg_dump -U cmms_userv3 -d cmms_dbv3 | gzip > ~postgres/cmms_dbv
 sudo -u postgres pg_dump -U cmms_userv3 -d cmms_dbv3 | bzip2 > ~postgres/cmms_dbv3_backup_$(date +%Y%m%d).sql.bz2
 ```
 
-#### Opsi 5: Simpan di /tmp (untuk sementara, lalu pindahkan)
+#### Opsi 5: Simpan di /tmp (untuk sementara, lalu pindahkan) OPSI INI YG DIGUNAKAN
 
 Jika ada masalah permission dengan home directory postgres:
 
@@ -430,7 +432,7 @@ git checkout master
 
 ```bash
 cd /home/pi/cmmsv3/backend
-cp .env.example .env
+   cp .env.example .env
 nano .env
 ```
 

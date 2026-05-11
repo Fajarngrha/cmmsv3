@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { apiUrl } from '../api'
+import { apiUrl, apiFetch } from '../api'
 
 export interface UpcomingPMDetail {
   id: string
@@ -90,7 +90,7 @@ export function ViewPMModal({ pm, onClose, onSuccess }: ViewPMModalProps) {
   const handleSaveKeterangan = () => {
     setSaveError('')
     setSaving(true)
-    fetch(apiUrl(`/api/dashboard/upcoming-pm/${pm.id}`), {
+    apiFetch(apiUrl(`/api/dashboard/upcoming-pm/${pm.id}`), {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({

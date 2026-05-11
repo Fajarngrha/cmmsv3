@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react'
-import { apiUrl } from '../api'
+import { apiUrl, apiFetch } from '../api'
 
 interface CreatePOModalProps {
   onClose: () => void
@@ -92,7 +92,7 @@ export function CreatePOModal({ onClose, onSuccess }: CreatePOModalProps) {
     }))
     Promise.all(
       payloads.map((body) =>
-        fetch(apiUrl('/api/purchase-orders'), {
+        apiFetch(apiUrl('/api/purchase-orders'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(body),
