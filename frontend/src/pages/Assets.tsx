@@ -309,6 +309,9 @@ export function Assets() {
                 <th style={{ padding: '0.75rem' }}>Asset No</th>
                 <th style={{ padding: '0.75rem' }}>Nama</th>
                 <th style={{ padding: '0.75rem' }}>Section</th>
+                <th style={{ padding: '0.75rem' }}>Maker</th>
+                <th style={{ padding: '0.75rem' }}>Model</th>
+                <th style={{ padding: '0.75rem' }}>Kapasitas Debit (m3/Min)</th>
                 <th style={{ padding: '0.75rem' }}>Usia Mesin</th>
                 <th style={{ padding: '0.75rem' }}>Last PM</th>
                 <th style={{ padding: '0.75rem' }}>Next PM</th>
@@ -323,6 +326,9 @@ export function Assets() {
                     </td>
                     <td style={{ padding: '0.75rem' }}>{a.name}</td>
                     <td style={{ padding: '0.75rem' }}>{a.section}</td>
+                    <td style={{ padding: '0.75rem' }}>{a.maker || '—'}</td>
+                    <td style={{ padding: '0.75rem' }}>{a.model || '—'}</td>
+                    <td style={{ padding: '0.75rem' }}>{a.flowCapacity != null ? a.flowCapacity : '—'}</td>
                     <td style={{ padding: '0.75rem' }}>{hitungUsiaMesin(a.installedAt)}</td>
                     <td style={{ padding: '0.75rem' }}>{a.lastPmDate}</td>
                     <td style={{ padding: '0.75rem' }}>{a.nextPmDate}</td>
