@@ -95,8 +95,6 @@ const DEFAULT_PO_BUDGET_IDR: Record<POCategory, number> = {
 // Override budget spesifik per bulan (format key: "YYYY-MM")
 const PO_BUDGET_BY_MONTH_IDR: Record<string, Partial<Record<POCategory, number>>> = {
   '2026-03': { Supplies: 150_000, Sparepart: 649_718_000, 'Service & Repair': 1_683_641_000 },
-  '2026-04': { Supplies: 150_000, Sparepart: 600_000_000, 'Service & Repair': 1_683_641_000 },
-  '2026-05': { Supplies: 150_000, Sparepart: 600_000_000, 'Service & Repair': 1_683_641_000 },
 }
 
 function formatIdr(n: number) {
@@ -123,20 +121,37 @@ export function Dashboard() {
   const [purchaseOrders, setPurchaseOrders] = useState<PurchaseOrder[]>([])
   const [assets, setAssets] = useState<Asset[]>([])
   const [viewWoId, setViewWoId] = useState<string | null>(null)
+  const [loadError, setLoadError] = useState<string | null>(null)
 
   useEffect(() => {
+    const fetchJson = async <T,>(path: string): Promise<T | null> => {
+      try {
+        const response = await fetch(apiUrl(path))
+        if (!response.ok) return null
+        return (await response.json()) as T
+      } catch {
+        return null
+      }
+    }
+
     Promise.all([
-      fetch(apiUrl('/api/dashboard/kpis')).then((r) => r.json()),
-      fetch(apiUrl('/api/dashboard/upcoming-pm')).then((r) => r.json()),
-      fetch(apiUrl('/api/permintaan-perbaikan')).then((r) => r.json()),
-      fetch(apiUrl('/api/purchase-orders')).then((r) => r.json()),
-      fetch(apiUrl('/api/assets')).then((r) => r.json()),
+      fetchJson<DashboardKpis>('/api/dashboard/kpis'),
+      fetchJson<UpcomingPM[]>('/api/dashboard/upcoming-pm'),
+      fetchJson<PermintaanPerbaikanItem[]>('/api/permintaan-perbaikan'),
+      fetchJson<PurchaseOrder[]>('/api/purchase-orders'),
+      fetchJson<Asset[]>('/api/assets'),
     ]).then(([k, u, woList, poList, assetList]) => {
       setKpis(k)
-      setUpcomingPM(u || [])
-      setPermintaanPerbaikan((woList as PermintaanPerbaikanItem[]) || [])
-      setPurchaseOrders((poList as PurchaseOrder[]) || [])
-      setAssets((assetList as Asset[]) || [])
+      setUpcomingPM(Array.isArray(u) ? u : [])
+      setPermintaanPerbaikan(Array.isArray(woList) ? woList : [])
+      setPurchaseOrders(Array.isArray(poList) ? poList : [])
+      setAssets(Array.isArray(assetList) ? assetList : [])
+
+      if (!k || !u || !woList || !poList || !assetList) {
+        setLoadError('Sebagian data dashboard belum tersedia. Periksa backend/database, lalu refresh.')
+      } else {
+        setLoadError(null)
+      }
     })
   }, [])
 
@@ -328,6 +343,11 @@ export function Dashboard() {
 
   return (
     <div className="page">
+      {loadError && (
+        <div className="card" style={{ marginBottom: '1rem', borderColor: '#fca5a5', background: '#fff1f2', color: '#9f1239' }}>
+          {loadError}
+        </div>
+      )}
       {/* Ringkasan permintaan perbaikan - sama seperti halaman Permintaan perbaikan */}
       <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '1rem', marginBottom: '1.5rem' }}>
         <div className="grid-4" style={{ flex: 1, minWidth: 200 }}>
@@ -378,7 +398,7 @@ export function Dashboard() {
         <KpiCard
           title="Maintenance Cost (Rp)"
           value={formatIdr(maintenanceCostIdr)}
-          sub={period !== 'all' || section !== 'all' ? '' : ''}
+          sub={period !== 'all' || section !== 'all' ? 'Tahap 7 saja (sesuai filter)' : 'Tahap 7 saja'}
           color="blue"
           icon="💰"
         />

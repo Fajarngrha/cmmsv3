@@ -38,7 +38,9 @@ export function buildCsvContent<T>(rows: T[], columns: CsvColumn<T>[]): string {
  */
 export function downloadCsv(content: string, filename: string): void {
   const BOM = '\uFEFF'
-  const blob = new Blob([BOM + content], { type: 'text/csv;charset=utf-8' })
+  // Excel Indonesia memakai pemisah ";". Baris sep=, memaksa Excel memecah kolom dengan koma.
+  const excelHint = content.trimStart().toLowerCase().startsWith('sep=') ? '' : 'sep=,\r\n'
+  const blob = new Blob([BOM + excelHint + content], { type: 'text/csv;charset=utf-8' })
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url
@@ -55,21 +57,38 @@ export function exportToCsv<T>(rows: T[], columns: CsvColumn<T>[], filename: str
   downloadCsv(content, filename)
 }
 
-/**
- * Parse CSV string menjadi array of rows (array of string[]).
- * Menangani BOM UTF-8, quoted field (dengan comma di dalam), dan \r\n.
- */
-export function parseCsvToRows(csvText: string): string[][] {
-  const normalized = csvText.replace(/\r\n/g, '\n').replace(/\r/g, '\n').replace(/\uFEFF/g, '')
+function detectCsvDelimiter(text: string): ',' | ';' {
+  const firstLine = text.split('\n').find((line) => {
+    const t = line.trim()
+    return t !== '' && !/^sep=/i.test(t)
+  })
+  if (!firstLine) return ','
+  let commas = 0
+  let semis = 0
+  let inQuotes = false
+  for (let i = 0; i < firstLine.length; i++) {
+    const c = firstLine[i]
+    if (c === '"') {
+      inQuotes = !inQuotes
+      continue
+    }
+    if (inQuotes) continue
+    if (c === ',') commas++
+    if (c === ';') semis++
+  }
+  return semis > commas ? ';' : ','
+}
+
+function parseCsvWithDelimiter(text: string, delimiter: ',' | ';'): string[][] {
   const rows: string[][] = []
   let current: string[] = []
   let field = ''
   let inQuotes = false
-  for (let i = 0; i < normalized.length; i++) {
-    const c = normalized[i]
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i]
     if (inQuotes) {
       if (c === '"') {
-        if (normalized[i + 1] === '"') {
+        if (text[i + 1] === '"') {
           field += '"'
           i++
         } else {
@@ -84,7 +103,7 @@ export function parseCsvToRows(csvText: string): string[][] {
       inQuotes = true
       continue
     }
-    if (c === ',' || c === '\n') {
+    if (c === delimiter || c === '\n') {
       current.push(field.trim())
       field = ''
       if (c === '\n') {
@@ -100,6 +119,47 @@ export function parseCsvToRows(csvText: string): string[][] {
     if (current.some((cell) => cell !== '')) rows.push(current)
   }
   return rows
+}
+
+/**
+ * Parse CSV string menjadi array of rows (array of string[]).
+ * Menangani BOM UTF-8, quoted field, \r\n, dan pemisah koma atau titik koma (Excel Indonesia).
+ */
+export function parseCsvToRows(csvText: string): string[][] {
+  let normalized = csvText.replace(/\r\n/g, '\n').replace(/\r/g, '\n').replace(/\uFEFF/g, '')
+  normalized = normalized
+    .split('\n')
+    .filter((line) => !/^sep=/i.test(line.trim()))
+    .join('\n')
+  let rows = parseCsvWithDelimiter(normalized, detectCsvDelimiter(normalized))
+  const first = rows[0]
+  if (first && first.length === 1 && /[,;]/.test(first[0])) {
+    const innerDelim: ',' | ';' = first[0].includes(';') && first[0].split(';').length > first[0].split(',').length ? ';' : ','
+    rows = parseCsvWithDelimiter(
+      rows.map((r) => r.join(innerDelim)).join('\n'),
+      innerDelim
+    )
+  }
+  return rows
+}
+
+/**
+ * Ambil nilai kolom CSV tanpa peduli huruf besar/kecil atau alias header.
+ */
+export function csvField(row: Record<string, string>, ...aliases: string[]): string {
+  for (const alias of aliases) {
+    const direct = row[alias]
+    if (direct != null && String(direct).trim() !== '') return String(direct).trim()
+  }
+  const lowerMap = new Map<string, string>()
+  for (const [key, value] of Object.entries(row)) {
+    lowerMap.set(key.trim().toLowerCase(), value)
+  }
+  for (const alias of aliases) {
+    const value = lowerMap.get(alias.trim().toLowerCase())
+    if (value != null && value.trim() !== '') return value.trim()
+  }
+  return ''
 }
 
 /**

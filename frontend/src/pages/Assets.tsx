@@ -3,7 +3,7 @@ import { apiUrl } from '../api'
 import { CreateAssetModal } from '../components/CreateAssetModal'
 import { ViewAssetModal } from '../components/ViewAssetModal'
 import { hitungUsiaMesin } from '../utils/assetAge'
-import { buildCsvContent, downloadCsv, exportToCsv, parseCsvToObjects, type CsvColumn } from '../utils/exportToCsv'
+import { buildCsvContent, csvField, downloadCsv, exportToCsv, parseCsvToObjects, type CsvColumn } from '../utils/exportToCsv'
 
 interface Asset {
   id: string
@@ -98,16 +98,16 @@ export function Assets() {
       try {
         const rows = parseCsvToObjects(text)
         const payload = rows
-          .filter((r) => (r['Nama'] ?? r['name'] ?? '').trim() && (r['Section'] ?? r['section'] ?? '').trim())
           .map((r) => ({
-            assetId: (r['Asset ID'] ?? r['assetId'] ?? '').trim() || undefined,
-            name: (r['Nama'] ?? r['name'] ?? '').trim(),
-            section: (r['Section'] ?? r['section'] ?? '').trim(),
-            lastPmDate: (r['Last PM'] ?? r['lastPmDate'] ?? '').trim() || undefined,
-            nextPmDate: (r['Next PM'] ?? r['nextPmDate'] ?? '').trim() || undefined,
-            health: normalizeHealth(r['Health'] ?? r['health'] ?? ''),
-            installedAt: (r['Installed At'] ?? r['installedAt'] ?? '').trim() || undefined,
+            assetId: csvField(r, 'Asset ID', 'assetId') || undefined,
+            name: csvField(r, 'Nama', 'name', 'Name'),
+            section: csvField(r, 'Section', 'section'),
+            lastPmDate: csvField(r, 'Last PM', 'lastPmDate') || undefined,
+            nextPmDate: csvField(r, 'Next PM', 'nextPmDate') || undefined,
+            health: normalizeHealth(csvField(r, 'Health', 'health')),
+            installedAt: csvField(r, 'Installed At', 'installedAt') || undefined,
           }))
+          .filter((r) => r.name && r.section)
         if (payload.length === 0) {
           setImporting(false)
           setImportMessage({ type: 'err', text: 'Tidak ada baris valid (Nama dan Section wajib).' })

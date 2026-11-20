@@ -47,7 +47,7 @@ export function Login({ onLoginSuccess }: LoginProps) {
       <div className="login-card">
         <div className="login-brand">
           <img src="/logo.png" alt="FID Maintenance System" className="login-logo" />
-          <p className="login-eyebrow">CMMS Platform</p>
+          <p className="login-eyebrow"> </p>
           <h1>Maintenance System</h1>
           <p className="login-subtitle">Masuk untuk mengakses dashboard monitoring maintenance.</p>
         </div>
@@ -91,9 +91,9 @@ export function Login({ onLoginSuccess }: LoginProps) {
           </button>
         </form>
 
-        <p className="login-helper">
+        {/* <p className="login-helper">
           Multi user aktif. Untuk menambah akun, cukup isi data user baru di backend (tabel <code>app_users</code>).
-        </p>
+        </p> */}
       </div>
     </div>
   )

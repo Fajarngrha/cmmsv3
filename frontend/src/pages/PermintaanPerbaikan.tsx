@@ -48,6 +48,7 @@ export function PermintaanPerbaikan() {
   const [modalOpen, setModalOpen] = useState(false)
   const [viewWoId, setViewWoId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState<string | null>(null)
   const [actionMenuOpenId, setActionMenuOpenId] = useState<string | null>(null)
 
   useEffect(() => {
@@ -58,13 +59,28 @@ export function PermintaanPerbaikan() {
   }, [actionMenuOpenId])
 
   const load = () => {
+    setLoading(true)
     fetch(apiUrl('/api/permintaan-perbaikan'))
-      .then((r) => r.json())
+      .then(async (r) => {
+        if (!r.ok) throw new Error('Gagal mengambil data permintaan perbaikan.')
+        return r.json()
+      })
       .then((data) => {
-        setList(data)
+        if (Array.isArray(data)) {
+          setList(data as PermintaanPerbaikanItem[])
+          setLoadError(null)
+          return
+        }
+        setList([])
+        setLoadError('Data permintaan perbaikan belum tersedia. Periksa backend/database lalu refresh.')
+      })
+      .catch(() => {
+        setList([])
+        setLoadError('Gagal memuat data permintaan perbaikan. Cek backend lalu refresh.')
+      })
+      .finally(() => {
         setLoading(false)
       })
-      .catch(() => setLoading(false))
   }
 
   useEffect(() => {
@@ -98,6 +114,11 @@ export function PermintaanPerbaikan() {
 
   return (
     <div className="page">
+      {loadError && (
+        <div className="card" style={{ marginBottom: '1rem', borderColor: '#fca5a5', background: '#fff1f2', color: '#9f1239' }}>
+          {loadError}
+        </div>
+      )}
       <h1 style={{ margin: '0 0 0.25rem', fontSize: '1.5rem' }}>Kontrol Permintaan Perbaikan</h1>
       <p style={{ margin: '0 0 1.5rem', color: '#64748b', fontSize: '0.9rem' }}>
         Kelola dan monitor semua permintaan perbaikan di sini

@@ -26,8 +26,10 @@ export interface AuthUser {
 }
 
 const DEFAULT_AUTH_USERS: SeedUser[] = [
-  { username: 'admin', password: 'admin123', displayName: 'Administrator', role: 'Admin' },
-  { username: 'supervisor', password: 'supervisor123', displayName: 'Maintenance Supervisor', role: 'Supervisor' },
+  { username: 'adminmtn', password: 'Admin!#2026', displayName: 'Administrator', role: 'Admin' },
+  { username: 'spvmolding', password: 'Spv!#2026', displayName: 'Molding Supervisor', role: 'Supervisor' },
+  { username: 'spvdiecast', password: 'Spv!#2026', displayName: 'Die Cast Supervisor', role: 'Supervisor' },
+  { username: 'spvmtc', password: 'Spv!#2026', displayName: 'Maintenance Supervisor', role: 'Supervisor' },
   { username: 'teknisi', password: 'teknisi123', displayName: 'Teknisi Maintenance', role: 'Technician' },
 ]
 
@@ -66,19 +68,23 @@ export async function ensureAuthSchema(): Promise<void> {
   `)
 }
 
+/** Menyelaraskan baris untuk setiap akun seed dengan DEFAULT_AUTH_USERS (username, hash kata sandi, profil). */
 export async function ensureDefaultUsers(): Promise<void> {
-  const total = await query<{ total: number }>('SELECT COUNT(*)::int AS total FROM app_users')
-  if ((total.rows[0]?.total ?? 0) > 0) return
-
   for (const user of DEFAULT_AUTH_USERS) {
     const hash = await bcrypt.hash(user.password, SALT_ROUNDS)
     await query(
       `INSERT INTO app_users (username, password_hash, display_name, role, is_active)
-       VALUES ($1, $2, $3, $4, TRUE)`,
+       VALUES ($1, $2, $3, $4, TRUE)
+       ON CONFLICT (username) DO UPDATE SET
+         password_hash = EXCLUDED.password_hash,
+         display_name = EXCLUDED.display_name,
+         role = EXCLUDED.role,
+         is_active = TRUE,
+         updated_at = CURRENT_TIMESTAMP`,
       [user.username, hash, user.displayName, user.role]
     )
   }
-  console.log('[auth] Default users seeded:', DEFAULT_AUTH_USERS.map((u) => u.username).join(', '))
+  console.log('[auth] Seed users synced:', DEFAULT_AUTH_USERS.map((u) => u.username).join(', '))
 }
 
 export async function verifyLogin(username: string, password: string): Promise<AuthUser | null> {

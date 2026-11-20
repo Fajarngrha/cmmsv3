@@ -31,7 +31,7 @@
  Sebelum web, proses `[Nama Proses]` masih `[manual/tersebar/berbasis kertas/spreadsheet]`, yang menyebabkan:
  - Data sering tidak konsisten / format berbeda
  - Koordinasi antar pihak lambat karena informasi tidak terpusat
- - Sulit tracking status dan audit (riwayat perubahan tidak jelas)
+ - Sulit tracking status  (riwayat perubahan tidak jelas)
  Dampak:
  - Proses lebih lama
  - Potensi rework / koreksi meningkat

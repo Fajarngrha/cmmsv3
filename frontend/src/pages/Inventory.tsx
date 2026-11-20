@@ -4,7 +4,7 @@ import { apiUrl } from '../api'
 import { AddSparePartModal } from '../components/AddSparePartModal'
 import { EditSparePartModal } from '../components/EditSparePartModal'
 import { IssueSparePartModal } from '../components/IssueSparePartModal'
-import { buildCsvContent, downloadCsv, exportToCsv, parseCsvToObjects, type CsvColumn } from '../utils/exportToCsv'
+import { buildCsvContent, csvField, downloadCsv, exportToCsv, parseCsvToObjects, type CsvColumn } from '../utils/exportToCsv'
 
 interface SparePart {
   id: string
@@ -135,21 +135,29 @@ export function Inventory() {
       try {
         const rows = parseCsvToObjects(text)
         const payload = rows
-          .filter((r) => (r['Nama'] ?? r['name'] ?? '').trim() && (r['Category'] ?? r['category'] ?? '').trim())
-          .map((r) => ({
-            partCode: (r['Part Code'] ?? r['partCode'] ?? '').trim() || undefined,
-            name: (r['Nama'] ?? r['name'] ?? '').trim(),
-            spec: (r['Spesifikasi'] ?? r['spec'] ?? '').trim() || undefined,
-            forMachine: (r['Untuk Mesin'] ?? r['forMachine'] ?? '').trim() || undefined,
-            category: (r['Category'] ?? r['category'] ?? '').trim(),
-            stock: Number(r['Stock'] ?? r['stock']) || 0,
-            minStock: Number(r['Min Stock'] ?? r['minStock']) || 0,
-            unit: (r['Unit'] ?? r['unit'] ?? 'pcs').trim() || 'pcs',
-            location: (r['Location'] ?? r['location'] ?? '').trim() || undefined,
-          }))
+          .map((r) => {
+            const name = csvField(r, 'Nama', 'name', 'Name')
+            const category = csvField(r, 'Category', 'category', 'Kategori', 'kategori')
+            return {
+              partCode: csvField(r, 'Part Code', 'partCode', 'Kode', 'Kode Part') || undefined,
+              name,
+              spec: csvField(r, 'Spesifikasi', 'spec') || undefined,
+              forMachine: csvField(r, 'Untuk Mesin', 'forMachine') || undefined,
+              category,
+              stock: Number(csvField(r, 'Stock', 'stock', 'Stok')) || 0,
+              minStock: Number(csvField(r, 'Min Stock', 'minStock', 'Min Stok')) || 0,
+              unit: csvField(r, 'Unit', 'unit') || 'pcs',
+              location: csvField(r, 'Location', 'location', 'Lokasi') || undefined,
+            }
+          })
+          .filter((r) => r.name && r.category)
         if (payload.length === 0) {
           setImporting(false)
-          setImportMessage({ type: 'err', text: 'Tidak ada baris valid (Nama dan Category wajib).' })
+          const headers = rows[0] ? Object.keys(rows[0]).join(', ') : '(file kosong atau hanya header)'
+          setImportMessage({
+            type: 'err',
+            text: `Tidak ada baris valid (kolom Nama dan Category wajib terisi). Header terdeteksi: ${headers}. Simpan ulang sebagai CSV (bukan Excel .xlsx). Excel Indonesia biasanya memakai titik koma — itu sudah didukung setelah update ini.`,
+          })
           return
         }
         fetch(apiUrl('/api/inventory/spare-parts/import'), {
@@ -331,7 +339,7 @@ export function Inventory() {
         </p>
       )}
       <p style={{ margin: '-0.5rem 0 1rem', fontSize: '0.8rem', color: '#64748b' }}>
-        Format import: CSV dengan baris pertama header. Kolom wajib: <strong>Nama</strong>, <strong>Category</strong>. Opsional: Part Code, Stock, Min Stock, Unit, Lokasi (Location), Spesifikasi, Untuk Mesin. Gunakan &quot;Download template&quot; untuk contoh.
+        Format import: file <strong>.csv</strong> (bukan .xlsx). Unduh template, isi kolom <strong>Nama</strong> dan <strong>Category</strong> pada baris data, lalu Save As → CSV. Jangan hapus baris header. Opsional: Part Code, Stock, Min Stock, Unit, Location/Lokasi, Spesifikasi, Untuk Mesin.
       </p>
 
       <div className="card" style={{ marginBottom: '1.5rem' }}>
