@@ -23,8 +23,7 @@ interface ReceiveSparePartModalProps {
 
 export function ReceiveSparePartModal({ part, onClose, onSuccess }: ReceiveSparePartModalProps) {
   const [qty, setQty] = useState<number | ''>(1)
-  const [pic, setPic] = useState('')
-  const [reason, setReason] = useState('')
+  const [nama, setNama] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
 
@@ -33,8 +32,12 @@ export function ReceiveSparePartModal({ part, onClose, onSuccess }: ReceiveSpare
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
+    if (!nama.trim()) {
+      setError('Nama wajib diisi.')
+      return
+    }
     if (qtyNum <= 0 || !Number.isInteger(qtyNum)) {
-      setError('Qty masuk harus bilangan bulat positif.')
+      setError('Jumlah masuk harus bilangan bulat positif.')
       return
     }
     setSubmitting(true)
@@ -43,8 +46,7 @@ export function ReceiveSparePartModal({ part, onClose, onSuccess }: ReceiveSpare
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         qty: qtyNum,
-        pic: pic.trim() || undefined,
-        reason: reason.trim() || undefined,
+        pic: nama.trim(),
       }),
     })
       .then((r) => {
@@ -67,8 +69,11 @@ export function ReceiveSparePartModal({ part, onClose, onSuccess }: ReceiveSpare
       <div className="modal-content" style={{ maxWidth: 440 }}>
         <div className="modal-header">
           <h2 id="receive-sparepart-title">Masuk Spare Part</h2>
-          <button type="button" className="modal-close" onClick={onClose} aria-label="Tutup" disabled={submitting}>×</button>
+          <button type="button" className="modal-close" onClick={onClose} aria-label="Tutup" disabled={submitting}>
+            ×
+          </button>
         </div>
+
         <div style={{ padding: '0 1.25rem', marginBottom: '1rem' }}>
           <div className="wo-detail-section" style={{ marginBottom: '1rem' }}>
             <div className="wo-detail-grid">
@@ -92,12 +97,37 @@ export function ReceiveSparePartModal({ part, onClose, onSuccess }: ReceiveSpare
                 <span className="wo-detail-label">Location</span>
                 <span className="wo-detail-value muted">{part.location || '—'}</span>
               </div>
+              {part.spec && (
+                <div className="wo-detail-row">
+                  <span className="wo-detail-label">Spesifikasi Part</span>
+                  <span className="wo-detail-value muted">{part.spec}</span>
+                </div>
+              )}
+              {part.forMachine && (
+                <div className="wo-detail-row">
+                  <span className="wo-detail-label">Untuk Mesin</span>
+                  <span className="wo-detail-value muted">{part.forMachine}</span>
+                </div>
+              )}
             </div>
           </div>
         </div>
+
         <form onSubmit={handleSubmit} style={{ padding: '0 1.25rem 1.25rem' }}>
           <div className="form-group">
-            <label className="label" htmlFor="receive-qty">Qty masuk *</label>
+            <label className="label" htmlFor="receive-nama">Nama *</label>
+            <input
+              id="receive-nama"
+              className="input"
+              type="text"
+              value={nama}
+              onChange={(e) => setNama(e.target.value)}
+              placeholder="Nama penerima / PIC"
+              required
+            />
+          </div>
+          <div className="form-group">
+            <label className="label" htmlFor="receive-qty">Jumlah *</label>
             <input
               id="receive-qty"
               className="input"
@@ -105,36 +135,24 @@ export function ReceiveSparePartModal({ part, onClose, onSuccess }: ReceiveSpare
               min={1}
               value={qty}
               onChange={(e) => setQty(e.target.value === '' ? '' : Number(e.target.value))}
+              placeholder="1"
               required
             />
+            <p style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '0.25rem' }}>
+              Unit: {part.unit}
+            </p>
           </div>
-          <div className="form-group">
-            <label className="label" htmlFor="receive-pic">PIC (opsional)</label>
-            <input
-              id="receive-pic"
-              className="input"
-              value={pic}
-              onChange={(e) => setPic(e.target.value)}
-              placeholder="Nama penanggung jawab"
-            />
-          </div>
-          <div className="form-group">
-            <label className="label" htmlFor="receive-reason">Keterangan (opsional)</label>
-            <input
-              id="receive-reason"
-              className="input"
-              value={reason}
-              onChange={(e) => setReason(e.target.value)}
-              placeholder="e.g. Penerimaan PO, retur"
-            />
-          </div>
+
           {error && (
             <div style={{ padding: '0.5rem', background: '#fee2e2', borderRadius: 6, marginBottom: '1rem', fontSize: '0.9rem' }}>
               {error}
             </div>
           )}
+
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1.25rem' }}>
-            <button type="button" className="btn btn-secondary" onClick={onClose} disabled={submitting}>Batal</button>
+            <button type="button" className="btn btn-secondary" onClick={onClose} disabled={submitting}>
+              Batal
+            </button>
             <button type="submit" className="btn btn-primary" disabled={submitting}>
               {submitting ? 'Memproses...' : 'Masuk Spare Part'}
             </button>

@@ -309,8 +309,10 @@ inventoryRouter.patch('/inventory/spare-parts/:id/receive', async (req, res) => 
   try {
     const id = req.params.id
     const body = req.body as { qty?: number; reason?: string; pic?: string }
+    const pic = typeof body.pic === 'string' ? body.pic.trim() : ''
+    if (!pic) return res.status(400).json({ error: 'Nama wajib diisi.' })
     const qty = typeof body.qty === 'number' ? body.qty : Number(body.qty)
-    if (!Number.isInteger(qty) || qty <= 0) return res.status(400).json({ error: 'Qty masuk harus bilangan bulat positif.' })
+    if (!Number.isInteger(qty) || qty <= 0) return res.status(400).json({ error: 'Jumlah masuk harus bilangan bulat positif.' })
     const partResult = await query('SELECT * FROM spare_parts WHERE id = $1', [id])
     if (partResult.rows.length === 0) return res.status(404).json({ error: 'Spare part tidak ditemukan.' })
     const row = partResult.rows[0]
@@ -318,7 +320,7 @@ inventoryRouter.patch('/inventory/spare-parts/:id/receive', async (req, res) => 
     await query(
       `INSERT INTO spare_part_history (part_id, part_code, part_name, type, qty, unit, reason, pic)
        VALUES ($1, $2, $3, 'in', $4, $5, $6, $7)`,
-      [id, row.part_code, row.name, qty, row.unit, body.reason?.trim() || null, body.pic?.trim() || null]
+      [id, row.part_code, row.name, qty, row.unit, body.reason?.trim() || null, pic]
     )
     const updated = await query('SELECT * FROM spare_parts WHERE id = $1', [id])
     res.json(rowToSparePart(updated.rows[0]))

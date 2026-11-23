@@ -33,7 +33,6 @@ interface SparePartMovement {
   unit: string
   reason?: string
   pic?: string
-  validatedBy?: string
   createdAt: string
 }
 
@@ -77,6 +76,7 @@ export function Inventory() {
   const [receivePart, setReceivePart] = useState<SparePart | null>(null)
   const [history, setHistory] = useState<SparePartMovement[]>([])
   const [historyTypeFilter, setHistoryTypeFilter] = useState<'all' | 'in' | 'out'>('all')
+  const [historySearch, setHistorySearch] = useState('')
   const [historyPage, setHistoryPage] = useState(1)
   const [importMessage, setImportMessage] = useState<{ type: 'ok' | 'err'; text: string } | null>(null)
   const [importing, setImporting] = useState(false)
@@ -248,15 +248,33 @@ export function Inventory() {
 
   const lowStockCount = partsForSection.filter((p) => p.stock < p.minStock).length
   const sectionOptions = [...new Set([...INVENTORY_SECTIONS, ...parts.map(sectionOf).filter(Boolean)])]
-  const totalHistory = history.length
+  const filteredHistory = useMemo(() => {
+    const q = historySearch.trim().toLowerCase()
+    if (!q) return history
+    return history.filter((h) => {
+      const haystack = [
+        h.partName,
+        h.partCode,
+        h.spec,
+        h.pic,
+        h.reason,
+        h.type === 'out' ? 'keluar' : 'masuk',
+      ]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase()
+      return haystack.includes(q)
+    })
+  }, [history, historySearch])
+  const totalHistory = filteredHistory.length
   const historyTotalPages = Math.max(1, Math.ceil(totalHistory / HISTORY_ROWS_PER_PAGE))
   const safeHistoryPage = Math.min(Math.max(1, historyPage), historyTotalPages)
   const historyStartIdx = (safeHistoryPage - 1) * HISTORY_ROWS_PER_PAGE
-  const paginatedHistory = history.slice(historyStartIdx, historyStartIdx + HISTORY_ROWS_PER_PAGE)
+  const paginatedHistory = filteredHistory.slice(historyStartIdx, historyStartIdx + HISTORY_ROWS_PER_PAGE)
 
   useEffect(() => {
     setHistoryPage(1)
-  }, [historyTypeFilter])
+  }, [historyTypeFilter, historySearch])
 
   return (
     <div className="page">
@@ -573,6 +591,14 @@ export function Inventory() {
             <option value="in">Masuk</option>
             <option value="out">Keluar</option>
           </select>
+          <input
+            type="search"
+            className="input"
+            value={historySearch}
+            onChange={(e) => setHistorySearch(e.target.value)}
+            placeholder="Cari barang di history (nama, spesifikasi, PIC)..."
+            style={{ maxWidth: 320 }}
+          />
           <button
             type="button"
             className="btn btn-secondary"
