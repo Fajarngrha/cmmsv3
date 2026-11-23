@@ -611,7 +611,6 @@ export function Inventory() {
                 { header: 'Qty', key: 'qty' },
                 { header: 'Unit', key: 'unit' },
                 { header: 'PIC', getValue: (h) => h.pic || '—' },
-                { header: 'Validasi Gudang', getValue: (h) => h.validatedBy || '—' },
                 { header: 'Keterangan', getValue: (h) => h.reason || '—' },
               ]
               exportToCsv(history, columns, `history-spare-parts-${new Date().toISOString().slice(0, 10)}.csv`)
@@ -688,7 +687,6 @@ export function Inventory() {
                   <td style={{ padding: '0.75rem' }}>{h.qty}</td>
                   <td style={{ padding: '0.75rem' }}>{h.unit}</td>
                   <td style={{ padding: '0.75rem' }}>{h.pic || '—'}</td>
-                  <td style={{ padding: '0.75rem' }}>{h.validatedBy || '—'}</td>
                   <td style={{ padding: '0.75rem' }}>{h.reason || '—'}</td>
                 </tr>
               ))
