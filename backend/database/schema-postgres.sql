@@ -117,6 +117,7 @@ CREATE TABLE spare_parts (
   id SERIAL PRIMARY KEY,
   part_code VARCHAR(50) NOT NULL,
   name VARCHAR(255) NOT NULL,
+  section VARCHAR(100) NOT NULL DEFAULT 'Umum',
   category VARCHAR(100) NOT NULL,
   stock INTEGER NOT NULL DEFAULT 0,
   min_stock INTEGER NOT NULL DEFAULT 0,
@@ -130,9 +131,11 @@ CREATE TABLE spare_parts (
 
 CREATE UNIQUE INDEX uq_spare_parts_part_code ON spare_parts (part_code);
 CREATE INDEX idx_spare_parts_category ON spare_parts (category);
+CREATE INDEX idx_spare_parts_section ON spare_parts (section);
 
 COMMENT ON COLUMN spare_parts.spec IS 'Spesifikasi part';
 COMMENT ON COLUMN spare_parts.for_machine IS 'Untuk mesin';
+COMMENT ON COLUMN spare_parts.section IS 'Section pemilik / pemakai part. Umum = stok bersama semua section.';
 
 -- ------------------------------------------------------------
 -- Tabel: spare_part_history (audit in/out)

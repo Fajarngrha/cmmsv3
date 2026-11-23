@@ -97,6 +97,12 @@ export async function ensureSparePartHistoryValidation(): Promise<void> {
   `)
 }
 
+export async function ensureSparePartsSection(): Promise<void> {
+  await query(`ALTER TABLE spare_parts ADD COLUMN IF NOT EXISTS section VARCHAR(100)`)
+  await query(`CREATE INDEX IF NOT EXISTS idx_spare_parts_section ON spare_parts (section)`)
+  await query(`UPDATE spare_parts SET section = 'Umum' WHERE section IS NULL OR TRIM(section) = ''`)
+}
+
 /** Verifikasi nama + password tim gudang untuk transaksi stok masuk/keluar. */
 export async function verifyWarehouseApproval(
   name: string,

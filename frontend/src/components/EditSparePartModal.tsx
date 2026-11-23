@@ -1,10 +1,12 @@
 import { useState } from 'react'
 import { apiUrl } from '../api'
+import { INVENTORY_SECTIONS } from '../constants/sections'
 
 interface SparePart {
   id: string
   partCode: string
   name: string
+  section?: string
   category: string
   minStock: number
   location: string
@@ -20,6 +22,7 @@ interface EditSparePartModalProps {
 
 export function EditSparePartModal({ part, onClose, onSuccess }: EditSparePartModalProps) {
   const [name, setName] = useState(part.name)
+  const [section, setSection] = useState(part.section || 'Umum')
   const [spec, setSpec] = useState(part.spec ?? '')
   const [forMachine, setForMachine] = useState(part.forMachine ?? '')
   const [category, setCategory] = useState(part.category)
@@ -52,6 +55,7 @@ export function EditSparePartModal({ part, onClose, onSuccess }: EditSparePartMo
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         name: name.trim(),
+        section: section.trim() || 'Umum',
         spec,
         forMachine,
         category: category.trim(),
@@ -95,6 +99,24 @@ export function EditSparePartModal({ part, onClose, onSuccess }: EditSparePartMo
               onChange={(e) => setName(e.target.value)}
               required
             />
+          </div>
+
+          <div className="form-group">
+            <label className="label" htmlFor="edit-section">Section *</label>
+            <select
+              id="edit-section"
+              className="select"
+              value={section}
+              onChange={(e) => setSection(e.target.value)}
+              required
+            >
+              {INVENTORY_SECTIONS.map((s) => (
+                <option key={s} value={s}>{s}</option>
+              ))}
+              {section && !INVENTORY_SECTIONS.includes(section as (typeof INVENTORY_SECTIONS)[number]) && (
+                <option value={section}>{section}</option>
+              )}
+            </select>
           </div>
 
           <div className="form-group">

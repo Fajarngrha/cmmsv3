@@ -34,6 +34,7 @@ inventoryRouter.post('/inventory/spare-parts', async (req, res) => {
     const body = req.body as {
       partCode?: string
       name?: string
+      section?: string
       category?: string
       stock?: number
       minStock?: number
@@ -45,6 +46,7 @@ inventoryRouter.post('/inventory/spare-parts', async (req, res) => {
     }
     if (!body.name?.trim()) return res.status(400).json({ error: 'Nama spare part wajib diisi.' })
     if (!body.category?.trim()) return res.status(400).json({ error: 'Kategori wajib diisi.' })
+    const section = body.section?.trim() || 'Umum'
     const countResult = await query('SELECT COUNT(*)::int AS c FROM spare_parts')
     const nextNum = (countResult.rows[0]?.c ?? 0) + 1
     const partCode = body.partCode?.trim() || `PRT-${String(nextNum).padStart(3, '0')}`
@@ -53,11 +55,12 @@ inventoryRouter.post('/inventory/spare-parts', async (req, res) => {
     const stock = typeof body.stock === 'number' ? body.stock : Number(body.stock) || 0
     const minStock = typeof body.minStock === 'number' ? body.minStock : Number(body.minStock) || 0
     const result = await query(
-      `INSERT INTO spare_parts (part_code, name, category, stock, min_stock, unit, location, spec, for_machine)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *`,
+      `INSERT INTO spare_parts (part_code, name, section, category, stock, min_stock, unit, location, spec, for_machine)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *`,
       [
         partCode,
         body.name.trim(),
+        section,
         body.category.trim(),
         stock >= 0 ? stock : 0,
         minStock >= 0 ? minStock : 0,
@@ -88,6 +91,7 @@ inventoryRouter.post('/inventory/spare-parts/import', async (req, res) => {
       parts: Array<{
         partCode?: string
         name?: string
+        section?: string
         category?: string
         stock?: number
         minStock?: number
@@ -115,11 +119,12 @@ inventoryRouter.post('/inventory/spare-parts/import', async (req, res) => {
       const stock = typeof row.stock === 'number' ? row.stock : Number(row.stock) || 0
       const minStock = typeof row.minStock === 'number' ? row.minStock : Number(row.minStock) || 0
       const result = await query(
-        `INSERT INTO spare_parts (part_code, name, category, stock, min_stock, unit, location, spec, for_machine)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *`,
+        `INSERT INTO spare_parts (part_code, name, section, category, stock, min_stock, unit, location, spec, for_machine)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *`,
         [
           partCode,
           row.name.trim(),
+          row.section?.trim() || 'Umum',
           row.category.trim(),
           stock >= 0 ? stock : 0,
           minStock >= 0 ? minStock : 0,
@@ -203,6 +208,7 @@ inventoryRouter.patch('/inventory/spare-parts/:id', async (req, res) => {
     const id = req.params.id
     const body = req.body as {
       name?: string
+      section?: string
       spec?: string
       forMachine?: string
       category?: string
@@ -219,6 +225,11 @@ inventoryRouter.patch('/inventory/spare-parts/:id', async (req, res) => {
       if (!name) return res.status(400).json({ error: 'Nama spare part wajib diisi.' })
       updates.push(`name = $${idx++}`)
       params.push(name)
+    }
+
+    if (typeof body.section === 'string') {
+      updates.push(`section = $${idx++}`)
+      params.push(body.section.trim() || 'Umum')
     }
 
     if (typeof body.spec === 'string') {

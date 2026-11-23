@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { apiUrl } from '../api'
+import { INVENTORY_SECTIONS } from '../constants/sections'
 
 interface AddSparePartModalProps {
   onClose: () => void
@@ -11,6 +12,7 @@ const CATEGORIES = ['Bearings', 'Belts', 'Filters', 'Lubricants', 'Sensors', 'La
 export function AddSparePartModal({ onClose, onSuccess }: AddSparePartModalProps) {
   const [partCode, setPartCode] = useState('')
   const [name, setName] = useState('')
+  const [section, setSection] = useState('Umum')
   const [spec, setSpec] = useState('')
   const [forMachine, setForMachine] = useState('')
   const [category, setCategory] = useState('')
@@ -39,6 +41,7 @@ export function AddSparePartModal({ onClose, onSuccess }: AddSparePartModalProps
       body: JSON.stringify({
         partCode: partCode.trim() || undefined,
         name: name.trim(),
+        section: section.trim() || 'Umum',
         spec: spec.trim() || undefined,
         forMachine: forMachine.trim() || undefined,
         category: category.trim(),
@@ -100,6 +103,23 @@ export function AddSparePartModal({ onClose, onSuccess }: AddSparePartModalProps
               placeholder="e.g. Ball Bearing 6205"
               required
             />
+          </div>
+          <div className="form-group">
+            <label className="label" htmlFor="section">Section *</label>
+            <select
+              id="section"
+              className="select"
+              value={section}
+              onChange={(e) => setSection(e.target.value)}
+              required
+            >
+              {INVENTORY_SECTIONS.map((s) => (
+                <option key={s} value={s}>{s}</option>
+              ))}
+            </select>
+            <p style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '0.25rem' }}>
+              Pilih <strong>Umum</strong> jika part dipakai semua section.
+            </p>
           </div>
           <div className="form-group">
             <label className="label" htmlFor="spec">Spesifikasi Part</label>

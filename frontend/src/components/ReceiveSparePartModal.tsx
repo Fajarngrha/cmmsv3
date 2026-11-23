@@ -6,6 +6,7 @@ interface SparePart {
   id: string
   partCode: string
   name: string
+  section?: string
   category: string
   stock: number
   minStock: number
@@ -91,6 +92,10 @@ export function ReceiveSparePartModal({ part, onClose, onSuccess }: ReceiveSpare
                 <div className="wo-detail-row">
                   <span className="wo-detail-label">Nama</span>
                   <span className="wo-detail-value">{part.name}</span>
+                </div>
+                <div className="wo-detail-row">
+                  <span className="wo-detail-label">Section</span>
+                  <span className="wo-detail-value">{part.section || 'Umum'}</span>
                 </div>
                 <div className="wo-detail-row">
                   <span className="wo-detail-label">Stock saat ini</span>

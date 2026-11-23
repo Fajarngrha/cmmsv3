@@ -49,6 +49,7 @@ export function rowToSparePart(row: Record<string, unknown>) {
     id: String(row.id),
     partCode: row.part_code,
     name: row.name,
+    section: (row.section as string) || 'Umum',
     category: row.category,
     stock: Number(row.stock ?? 0),
     minStock: Number(row.min_stock ?? 0),

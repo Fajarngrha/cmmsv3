@@ -38,15 +38,15 @@ INSERT INTO permintaan_perbaikan (wo_id, machine_name, machine_brand, section, m
 -- ------------------------------------------------------------
 -- Spare Parts (8 item, spec & for_machine)
 -- ------------------------------------------------------------
-INSERT INTO spare_parts (part_code, name, category, stock, min_stock, unit, location, spec, for_machine) VALUES
-('FLT-001', 'Air Filter 10"', 'Filters', 45, 20, 'pcs', 'A1-01', '10 inch', 'Compressor Unit 1'),
-('BRG-001', 'Ball Bearing 6205', 'Bearings', 28, 15, 'pcs', 'B2-03', 'SKF 6205-2RS', 'Conveyor Belt A'),
-('BLT-001', 'V-Belt A42', 'Belts', 12, 10, 'pcs', 'A1-05', 'A42', 'Conveyor Belt A'),
-('LUB-001', 'Hydraulic Oil ISO 46', 'Lubricants', 80, 30, 'L', 'C1-02', '5L drum', 'Hydraulic Pump #2'),
-('SNR-001', 'Proximity Sensor', 'Sensors', 8, 5, 'pcs', 'B1-04', '24VDC NPN', 'Motor Listrik 3 Phase'),
-('FLT-002', 'Oil Filter', 'Filters', 18, 12, 'pcs', 'A1-01', 'Spin-on', 'Boiler #1'),
-('BRG-002', 'Spherical Bearing', 'Bearings', 5, 8, 'pcs', 'B2-03', 'Self-aligning', 'Chiller System'),
-('BLT-002', 'Timing Belt', 'Belts', 6, 5, 'pcs', 'A1-05', 'HTD 5M', 'Air Compressor #2');
+INSERT INTO spare_parts (part_code, name, section, category, stock, min_stock, unit, location, spec, for_machine) VALUES
+('FLT-001', 'Air Filter 10"', 'Umum', 'Filters', 45, 20, 'pcs', 'A1-01', '10 inch', 'Compressor Unit 1'),
+('BRG-001', 'Ball Bearing 6205', 'Molding', 'Bearings', 28, 15, 'pcs', 'B2-03', 'SKF 6205-2RS', 'Conveyor Belt A'),
+('BLT-001', 'V-Belt A42', 'Molding', 'Belts', 12, 10, 'pcs', 'A1-05', 'A42', 'Conveyor Belt A'),
+('LUB-001', 'Hydraulic Oil ISO 46', 'Die Casting', 'Lubricants', 80, 30, 'L', 'C1-02', '5L drum', 'Hydraulic Pump #2'),
+('SNR-001', 'Proximity Sensor', 'Machine 1', 'Sensors', 8, 5, 'pcs', 'B1-04', '24VDC NPN', 'Motor Listrik 3 Phase'),
+('FLT-002', 'Oil Filter', 'Heat Treatment', 'Filters', 18, 12, 'pcs', 'A1-01', 'Spin-on', 'Boiler #1'),
+('BRG-002', 'Spherical Bearing', 'PM Finishing', 'Bearings', 5, 8, 'pcs', 'B2-03', 'Self-aligning', 'Chiller System'),
+('BLT-002', 'Timing Belt', 'Umum', 'Belts', 6, 5, 'pcs', 'A1-05', 'HTD 5M', 'Air Compressor #2');
 
 -- ------------------------------------------------------------
 -- Purchase Orders (2 PO, tanggal 2026 - untuk Dashboard filter & History)

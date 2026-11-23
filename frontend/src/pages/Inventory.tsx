@@ -5,12 +5,14 @@ import { AddSparePartModal } from '../components/AddSparePartModal'
 import { EditSparePartModal } from '../components/EditSparePartModal'
 import { IssueSparePartModal } from '../components/IssueSparePartModal'
 import { ReceiveSparePartModal } from '../components/ReceiveSparePartModal'
+import { INVENTORY_SECTIONS } from '../constants/sections'
 import { buildCsvContent, csvField, downloadCsv, exportToCsv, parseCsvToObjects, type CsvColumn } from '../utils/exportToCsv'
 
 interface SparePart {
   id: string
   partCode: string
   name: string
+  section?: string
   category: string
   stock: number
   minStock: number
@@ -39,6 +41,7 @@ interface SparePartMovement {
 const IMPORT_CSV_COLUMNS: CsvColumn<Record<string, string | number>>[] = [
   { header: 'Part Code', key: 'partCode' },
   { header: 'Nama', key: 'name' },
+  { header: 'Section', key: 'section' },
   { header: 'Category', key: 'category' },
   { header: 'Stock', key: 'stock' },
   { header: 'Min Stock', key: 'minStock' },
@@ -50,8 +53,8 @@ const IMPORT_CSV_COLUMNS: CsvColumn<Record<string, string | number>>[] = [
 
 /** Contoh baris untuk template import. */
 const IMPORT_TEMPLATE_ROWS: Record<string, string | number>[] = [
-  { partCode: 'PRT-001', name: 'Bearing 6205', category: 'Bearings', stock: 10, minStock: 2, unit: 'pcs', location: 'Gudang A', spec: 'Deep groove', forMachine: 'NC 12' },
-  { partCode: 'PRT-002', name: 'Filter Oli', category: 'Filters', stock: 5, minStock: 1, unit: 'pcs', location: 'Gudang B', spec: '', forMachine: '' },
+  { partCode: 'PRT-001', name: 'Bearing 6205', section: 'Molding', category: 'Bearings', stock: 10, minStock: 2, unit: 'pcs', location: 'Gudang A', spec: 'Deep groove', forMachine: 'NC 12' },
+  { partCode: 'PRT-002', name: 'Filter Oli', section: 'Umum', category: 'Filters', stock: 5, minStock: 1, unit: 'pcs', location: 'Gudang B', spec: '', forMachine: '' },
 ]
 const ROWS_PER_PAGE = 50
 const HISTORY_ROWS_PER_PAGE = 50
@@ -65,6 +68,7 @@ export function Inventory() {
   const [parts, setParts] = useState<SparePart[]>([])
   const [search, setSearch] = useState('')
   const [stockStatusFilter, setStockStatusFilter] = useState<'all' | 'ok' | 'low'>('all')
+  const [sectionFilter, setSectionFilter] = useState('')
   const [page, setPage] = useState(1)
   const [loading, setLoading] = useState(true)
   const [addModalOpen, setAddModalOpen] = useState(false)
@@ -143,6 +147,7 @@ export function Inventory() {
               spec: csvField(r, 'Spesifikasi', 'spec') || undefined,
               forMachine: csvField(r, 'Untuk Mesin', 'forMachine') || undefined,
               category,
+              section: csvField(r, 'Section', 'section') || 'Umum',
               stock: Number(csvField(r, 'Stock', 'stock', 'Stok')) || 0,
               minStock: Number(csvField(r, 'Min Stock', 'minStock', 'Min Stok')) || 0,
               unit: csvField(r, 'Unit', 'unit') || 'pcs',
@@ -183,9 +188,19 @@ export function Inventory() {
     reader.readAsText(file, 'UTF-8')
   }
 
-  const filtered = parts.filter((p) => {
+  const sectionOf = (p: SparePart) => p.section?.trim() || 'Umum'
+  const matchesSectionFilter = (p: SparePart) => {
+    if (!sectionFilter) return true
+    const section = sectionOf(p)
+    return section === sectionFilter || section === 'Umum'
+  }
+
+  const partsForSection = parts.filter(matchesSectionFilter)
+  const filtered = partsForSection.filter((p) => {
     const matchSearch =
       p.name.toLowerCase().includes(search.toLowerCase()) ||
+      p.partCode.toLowerCase().includes(search.toLowerCase()) ||
+      sectionOf(p).toLowerCase().includes(search.toLowerCase()) ||
       (p.spec ?? '').toLowerCase().includes(search.toLowerCase()) ||
       (p.forMachine ?? '').toLowerCase().includes(search.toLowerCase())
     const isLowStock = p.stock < p.minStock
@@ -203,7 +218,7 @@ export function Inventory() {
 
   useEffect(() => {
     setPage(1)
-  }, [search, stockStatusFilter])
+  }, [search, stockStatusFilter, sectionFilter])
 
   const mostIssuedPartsData = useMemo(() => {
     const byPart: Record<string, { partName: string; partCode: string; issuedQty: number; issuedCount: number }> = {}
@@ -231,7 +246,8 @@ export function Inventory() {
       }))
   }, [history])
 
-  const lowStockCount = parts.filter((p) => p.stock < p.minStock).length
+  const lowStockCount = partsForSection.filter((p) => p.stock < p.minStock).length
+  const sectionOptions = [...new Set([...INVENTORY_SECTIONS, ...parts.map(sectionOf).filter(Boolean)])]
   const totalHistory = history.length
   const historyTotalPages = Math.max(1, Math.ceil(totalHistory / HISTORY_ROWS_PER_PAGE))
   const safeHistoryPage = Math.min(Math.max(1, historyPage), historyTotalPages)
@@ -246,13 +262,13 @@ export function Inventory() {
     <div className="page">
       <h1 style={{ margin: '0 0 0.25rem', fontSize: '1.5rem' }}>Spare Parts Inventory</h1>
       <p style={{ margin: '0 0 1.5rem', color: '#64748b', fontSize: '0.9rem' }}>
-      Control Level Stock Sparepart untuk mencegah keterlambatan perbaikan mesin
+      Inventory terpusat: setiap section dapat mencari dan memakai spare part sesuai area (plus stok Umum).
       </p>
 
       <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '1rem', marginBottom: '1.5rem' }}>
         <div className="card" style={{ borderLeft: '4px solid #3b82f6' }}>
           <div style={{ fontSize: '0.8rem', color: '#64748b' }}>Total Sparepart</div>
-          <div style={{ fontSize: '1.5rem', fontWeight: 700 }}>{parts.length}</div>
+          <div style={{ fontSize: '1.5rem', fontWeight: 700 }}>{partsForSection.length}</div>
         </div>
         <div className="card" style={{ borderLeft: '4px solid #ef4444' }}>
           <div style={{ fontSize: '0.8rem', color: '#64748b' }}>Minimum Stock</div>
@@ -272,6 +288,7 @@ export function Inventory() {
             const columns: CsvColumn<SparePart>[] = [
               { header: 'Part Code', key: 'partCode' },
               { header: 'Nama', key: 'name' },
+              { header: 'Section', getValue: (p) => p.section || 'Umum' },
               { header: 'Spesifikasi', getValue: (p) => p.spec ?? '—' },
               { header: 'Untuk Mesin', getValue: (p) => p.forMachine ?? '—' },
               { header: 'Category', key: 'category' },
@@ -316,7 +333,7 @@ export function Inventory() {
         </p>
       )}
       <p style={{ margin: '-0.5rem 0 1rem', fontSize: '0.8rem', color: '#64748b' }}>
-        Format import: file <strong>.csv</strong> (bukan .xlsx). Unduh template, isi kolom <strong>Nama</strong> dan <strong>Category</strong> pada baris data, lalu Save As → CSV. Jangan hapus baris header. Opsional: Part Code, Stock, Min Stock, Unit, Location/Lokasi, Spesifikasi, Untuk Mesin.
+        Format import: file <strong>.csv</strong>. Kolom wajib: <strong>Nama</strong>, <strong>Category</strong>. Isi <strong>Section</strong> (contoh Molding, Die Casting, atau Umum). Opsional: Part Code, Stock, Min Stock, Unit, Location, Spesifikasi, Untuk Mesin.
       </p>
 
       <div className="card" style={{ marginBottom: '1.5rem' }}>
@@ -347,11 +364,22 @@ export function Inventory() {
         <input
           type="search"
           className="input"
-          placeholder="Cari nama, spesifikasi, atau untuk mesin..."
+          placeholder="Cari nama, part code, section, spesifikasi..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           style={{ maxWidth: 280 }}
         />
+        <select
+          className="select"
+          value={sectionFilter}
+          onChange={(e) => setSectionFilter(e.target.value)}
+          style={{ width: 'auto', minWidth: 180 }}
+        >
+          <option value="">Semua Section</option>
+          {sectionOptions.map((s) => (
+            <option key={s} value={s}>{s}</option>
+          ))}
+        </select>
         <select
           className="select"
           value={stockStatusFilter}
@@ -373,6 +401,7 @@ export function Inventory() {
               <tr style={{ borderBottom: '2px solid #e2e8f0', textAlign: 'left' }}>
                 <th style={{ padding: '0.75rem' }}>Part Code</th>
                 <th style={{ padding: '0.75rem' }}>Nama</th>
+                <th style={{ padding: '0.75rem' }}>Section</th>
                 <th style={{ padding: '0.75rem' }}>Spesifikasi</th>
                 <th style={{ padding: '0.75rem' }}>Untuk Mesin</th>
                 <th style={{ padding: '0.75rem' }}>Category</th>
@@ -393,6 +422,7 @@ export function Inventory() {
                       <span style={{ color: '#3b82f6', fontWeight: 500 }}>{p.partCode}</span>
                     </td>
                     <td style={{ padding: '0.75rem' }}>{p.name}</td>
+                    <td style={{ padding: '0.75rem' }}>{sectionOf(p)}</td>
                     <td style={{ padding: '0.75rem' }}>{p.spec || '—'}</td>
                     <td style={{ padding: '0.75rem' }}>{p.forMachine || '—'}</td>
                     <td style={{ padding: '0.75rem' }}>{p.category}</td>
