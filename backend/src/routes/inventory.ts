@@ -1,21 +1,6 @@
 import { Router } from 'express'
-import { verifyWarehouseApproval } from '../auth.js'
 import { query } from '../db/index.js'
 import { rowToSparePart, rowToSparePartMovement } from '../db/mappers.js'
-
-async function requireWarehouseApproval(body: {
-  warehouseName?: string
-  warehousePassword?: string
-}): Promise<{ approvedBy: string } | { error: string; status: number }> {
-  const result = await verifyWarehouseApproval(
-    body.warehouseName ?? '',
-    body.warehousePassword ?? ''
-  )
-  if (result.error || !result.user) {
-    return { error: result.error || 'Validasi gudang gagal.', status: 401 }
-  }
-  return { approvedBy: result.user.displayName || result.user.username }
-}
 
 export const inventoryRouter = Router()
 
@@ -296,15 +281,7 @@ inventoryRouter.delete('/inventory/spare-parts/:id', async (req, res) => {
 inventoryRouter.patch('/inventory/spare-parts/:id/issue', async (req, res) => {
   try {
     const id = req.params.id
-    const body = req.body as {
-      qty?: number
-      reason?: string
-      pic?: string
-      warehouseName?: string
-      warehousePassword?: string
-    }
-    const approval = await requireWarehouseApproval(body)
-    if ('error' in approval) return res.status(approval.status).json({ error: approval.error })
+    const body = req.body as { qty?: number; reason?: string; pic?: string }
     const pic = typeof body.pic === 'string' ? body.pic.trim() : ''
     if (!pic) return res.status(400).json({ error: 'PIC wajib diisi.' })
     const qty = typeof body.qty === 'number' ? body.qty : Number(body.qty)
@@ -316,9 +293,9 @@ inventoryRouter.patch('/inventory/spare-parts/:id/issue', async (req, res) => {
     if (stock < qty) return res.status(400).json({ error: `Stock tidak cukup. Tersedia: ${stock} ${row.unit}.` })
     await query('UPDATE spare_parts SET stock = stock - $1 WHERE id = $2', [qty, id])
     await query(
-      `INSERT INTO spare_part_history (part_id, part_code, part_name, type, qty, unit, reason, pic, validated_by)
-       VALUES ($1, $2, $3, 'out', $4, $5, $6, $7, $8)`,
-      [id, row.part_code, row.name, qty, row.unit, body.reason?.trim() || null, pic, approval.approvedBy]
+      `INSERT INTO spare_part_history (part_id, part_code, part_name, type, qty, unit, reason, pic)
+       VALUES ($1, $2, $3, 'out', $4, $5, $6, $7)`,
+      [id, row.part_code, row.name, qty, row.unit, body.reason?.trim() || null, pic]
     )
     const updated = await query('SELECT * FROM spare_parts WHERE id = $1', [id])
     res.json(rowToSparePart(updated.rows[0]))
@@ -331,15 +308,7 @@ inventoryRouter.patch('/inventory/spare-parts/:id/issue', async (req, res) => {
 inventoryRouter.patch('/inventory/spare-parts/:id/receive', async (req, res) => {
   try {
     const id = req.params.id
-    const body = req.body as {
-      qty?: number
-      reason?: string
-      pic?: string
-      warehouseName?: string
-      warehousePassword?: string
-    }
-    const approval = await requireWarehouseApproval(body)
-    if ('error' in approval) return res.status(approval.status).json({ error: approval.error })
+    const body = req.body as { qty?: number; reason?: string; pic?: string }
     const qty = typeof body.qty === 'number' ? body.qty : Number(body.qty)
     if (!Number.isInteger(qty) || qty <= 0) return res.status(400).json({ error: 'Qty masuk harus bilangan bulat positif.' })
     const partResult = await query('SELECT * FROM spare_parts WHERE id = $1', [id])
@@ -347,9 +316,9 @@ inventoryRouter.patch('/inventory/spare-parts/:id/receive', async (req, res) => 
     const row = partResult.rows[0]
     await query('UPDATE spare_parts SET stock = stock + $1 WHERE id = $2', [qty, id])
     await query(
-      `INSERT INTO spare_part_history (part_id, part_code, part_name, type, qty, unit, reason, pic, validated_by)
-       VALUES ($1, $2, $3, 'in', $4, $5, $6, $7, $8)`,
-      [id, row.part_code, row.name, qty, row.unit, body.reason?.trim() || null, body.pic?.trim() || null, approval.approvedBy]
+      `INSERT INTO spare_part_history (part_id, part_code, part_name, type, qty, unit, reason, pic)
+       VALUES ($1, $2, $3, 'in', $4, $5, $6, $7)`,
+      [id, row.part_code, row.name, qty, row.unit, body.reason?.trim() || null, body.pic?.trim() || null]
     )
     const updated = await query('SELECT * FROM spare_parts WHERE id = $1', [id])
     res.json(rowToSparePart(updated.rows[0]))
