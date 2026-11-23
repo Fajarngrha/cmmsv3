@@ -17,7 +17,7 @@ import { assetsRouter } from './routes/assets.js'
 import { inventoryRouter } from './routes/inventory.js'
 import { purchaseOrdersRouter } from './routes/purchaseOrders.js'
 import { query, getConnectionInfo } from './db/index.js'
-import { ensureAuthSchema, ensureDefaultUsers } from './auth.js'
+import { ensureAuthSchema, ensureDefaultUsers, ensureSparePartHistoryValidation } from './auth.js'
 
 const app = express()
 const PORT = Number(process.env.PORT) || 3001
@@ -48,6 +48,7 @@ async function start() {
   try {
     await query('SELECT 1')
     await ensureAuthSchema()
+    await ensureSparePartHistoryValidation()
     await ensureDefaultUsers()
     console.log('Database: connected as', getConnectionInfo())
     const tbl = await query(

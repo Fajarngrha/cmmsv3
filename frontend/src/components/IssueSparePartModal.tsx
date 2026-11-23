@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { apiUrl } from '../api'
+import { WarehouseConfirmModal } from './WarehouseConfirmModal'
 
 interface SparePart {
   id: string
@@ -24,6 +25,7 @@ export function IssueSparePartModal({ part, onClose, onSuccess }: IssueSparePart
   const [qty, setQty] = useState<number | ''>(1)
   const [pic, setPic] = useState('')
   const [reason, setReason] = useState('')
+  const [awaitingWarehouse, setAwaitingWarehouse] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
 
@@ -45,28 +47,43 @@ export function IssueSparePartModal({ part, onClose, onSuccess }: IssueSparePart
       setError(`Stock tidak cukup. Tersedia: ${maxQty} ${part.unit}.`)
       return
     }
+    setAwaitingWarehouse(true)
+  }
+
+  const submitWithWarehouse = (warehouseName: string, warehousePassword: string) => {
     setSubmitting(true)
+    setError('')
     fetch(apiUrl(`/api/inventory/spare-parts/${part.id}/issue`), {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ qty: qtyNum, pic: pic.trim(), reason: reason.trim() || undefined }),
+      body: JSON.stringify({
+        qty: qtyNum,
+        pic: pic.trim(),
+        reason: reason.trim() || undefined,
+        warehouseName,
+        warehousePassword,
+      }),
     })
       .then((r) => {
         if (!r.ok) return r.json().then((e) => { throw new Error(e.error || 'Gagal mengeluarkan spare part') })
         return r.json()
       })
       .then(() => onSuccess())
-      .catch((err) => setError(err.message || 'Gagal mengeluarkan spare part.'))
+      .catch((err) => {
+        setError(err.message || 'Gagal mengeluarkan spare part.')
+        setAwaitingWarehouse(true)
+      })
       .finally(() => setSubmitting(false))
   }
 
   return (
+    <>
     <div
       className="modal-overlay"
       role="dialog"
       aria-modal="true"
       aria-labelledby="issue-sparepart-title"
-      onClick={(e) => e.target === e.currentTarget && onClose()}
+      onClick={(e) => e.target === e.currentTarget && !awaitingWarehouse && onClose()}
     >
       <div className="modal-content" style={{ maxWidth: 440 }}>
         <div className="modal-header">
@@ -153,7 +170,7 @@ export function IssueSparePartModal({ part, onClose, onSuccess }: IssueSparePart
             />
           </div>
 
-          {error && (
+          {error && !awaitingWarehouse && (
             <div style={{ padding: '0.5rem', background: '#fee2e2', borderRadius: 6, marginBottom: '1rem', fontSize: '0.9rem' }}>
               {error}
             </div>
@@ -163,12 +180,27 @@ export function IssueSparePartModal({ part, onClose, onSuccess }: IssueSparePart
             <button type="button" className="btn btn-secondary" onClick={onClose}>
               Batal
             </button>
-            <button type="submit" className="btn btn-primary" disabled={submitting}>
-              {submitting ? 'Memproses...' : 'Keluar Spare Part'}
+            <button type="submit" className="btn btn-primary">
+              OK
             </button>
           </div>
         </form>
       </div>
     </div>
+      {awaitingWarehouse && (
+        <WarehouseConfirmModal
+          title="Validasi Gudang"
+          subtitle="Tim gudang mengisi nama dan password untuk mengesahkan barang keluar."
+          submitting={submitting}
+          serverError={error}
+          onCancel={() => {
+            if (submitting) return
+            setAwaitingWarehouse(false)
+            setError('')
+          }}
+          onConfirm={submitWithWarehouse}
+        />
+      )}
+    </>
   )
 }

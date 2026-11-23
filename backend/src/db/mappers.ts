@@ -71,6 +71,7 @@ export function rowToSparePartMovement(row: Record<string, unknown>) {
     unit: row.unit,
     reason: row.reason ?? undefined,
     pic: row.pic ?? undefined,
+    validatedBy: row.validated_by ?? undefined,
     createdAt: (row.created_at as Date)?.toISOString?.() ?? String(row.created_at),
   }
 }

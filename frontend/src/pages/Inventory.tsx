@@ -4,6 +4,7 @@ import { apiUrl } from '../api'
 import { AddSparePartModal } from '../components/AddSparePartModal'
 import { EditSparePartModal } from '../components/EditSparePartModal'
 import { IssueSparePartModal } from '../components/IssueSparePartModal'
+import { ReceiveSparePartModal } from '../components/ReceiveSparePartModal'
 import { buildCsvContent, csvField, downloadCsv, exportToCsv, parseCsvToObjects, type CsvColumn } from '../utils/exportToCsv'
 
 interface SparePart {
@@ -30,6 +31,7 @@ interface SparePartMovement {
   unit: string
   reason?: string
   pic?: string
+  validatedBy?: string
   createdAt: string
 }
 
@@ -68,6 +70,7 @@ export function Inventory() {
   const [addModalOpen, setAddModalOpen] = useState(false)
   const [editPart, setEditPart] = useState<SparePart | null>(null)
   const [issuePart, setIssuePart] = useState<SparePart | null>(null)
+  const [receivePart, setReceivePart] = useState<SparePart | null>(null)
   const [history, setHistory] = useState<SparePartMovement[]>([])
   const [historyTypeFilter, setHistoryTypeFilter] = useState<'all' | 'in' | 'out'>('all')
   const [historyPage, setHistoryPage] = useState(1)
@@ -75,8 +78,6 @@ export function Inventory() {
   const [importing, setImporting] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [actionMenuOpenId, setActionMenuOpenId] = useState<string | null>(null)
-  const [receivePartId, setReceivePartId] = useState<string | null>(null)
-  const [receiveQty, setReceiveQty] = useState('')
   const actionMenuRef = useRef<HTMLDivElement>(null)
 
   const load = () => {
@@ -109,8 +110,6 @@ export function Inventory() {
     const handleClickOutside = (e: MouseEvent) => {
       if (actionMenuRef.current && !actionMenuRef.current.contains(e.target as Node)) {
         setActionMenuOpenId(null)
-        setReceivePartId(null)
-        setReceiveQty('')
       }
     }
     if (actionMenuOpenId) {
@@ -242,28 +241,6 @@ export function Inventory() {
   useEffect(() => {
     setHistoryPage(1)
   }, [historyTypeFilter])
-
-  const handleReceiveSubmit = (partId: string) => {
-    const qty = Number(receiveQty)
-    if (!Number.isInteger(qty) || qty <= 0) {
-      return
-    }
-    fetch(apiUrl(`/api/inventory/spare-parts/${partId}/receive`), {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ qty }),
-    })
-      .then((r) => {
-        if (r.ok) {
-          load()
-          loadHistory()
-          setActionMenuOpenId(null)
-          setReceivePartId(null)
-          setReceiveQty('')
-        }
-      })
-      .catch(() => {})
-  }
 
   return (
     <div className="page">
@@ -437,15 +414,7 @@ export function Inventory() {
                           className="btn btn-secondary"
                           style={{ padding: '0.35rem 0.5rem', fontSize: '0.9rem' }}
                           onClick={() => {
-                            if (actionMenuOpenId === p.id) {
-                              setActionMenuOpenId(null)
-                              setReceivePartId(null)
-                              setReceiveQty('')
-                            } else {
-                              setActionMenuOpenId(p.id)
-                              setReceivePartId(null)
-                              setReceiveQty('')
-                            }
+                            setActionMenuOpenId(actionMenuOpenId === p.id ? null : p.id)
                           }}
                           title="Aksi"
                         >
@@ -464,92 +433,56 @@ export function Inventory() {
                               borderRadius: 8,
                               boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
                               zIndex: 50,
-                              padding: receivePartId === p.id ? '0.75rem' : '0.5rem',
+                              padding: '0.5rem',
                             }}
                           >
-                            {receivePartId === p.id ? (
-                              <>
-                                <label style={{ display: 'block', fontSize: '0.8rem', marginBottom: 4, fontWeight: 500 }}>Qty masuk</label>
-                                <input
-                                  type="number"
-                                  min={1}
-                                  className="input"
-                                  value={receiveQty}
-                                  onChange={(e) => setReceiveQty(e.target.value)}
-                                  placeholder="Jumlah"
-                                  style={{ width: '100%', marginBottom: 8 }}
-                                />
-                                <div style={{ display: 'flex', gap: 6 }}>
-                                  <button
-                                    type="button"
-                                    className="btn btn-primary"
-                                    style={{ flex: 1, padding: '0.4rem 0.5rem', fontSize: '0.8rem' }}
-                                    onClick={() => handleReceiveSubmit(p.id)}
-                                  >
-                                    Simpan
-                                  </button>
-                                  <button
-                                    type="button"
-                                    className="btn btn-secondary"
-                                    style={{ padding: '0.4rem 0.5rem', fontSize: '0.8rem' }}
-                                    onClick={() => { setReceivePartId(null); setReceiveQty('') }}
-                                  >
-                                    Batal
-                                  </button>
-                                </div>
-                              </>
-                            ) : (
-                              <>
-                                <button
-                                  type="button"
-                                  style={{ display: 'block', width: '100%', padding: '0.5rem 0.75rem', textAlign: 'left', border: 'none', background: 'none', cursor: 'pointer', fontSize: '0.9rem' }}
-                                  onClick={() => {
-                                    setActionMenuOpenId(null)
-                                    setReceivePartId(null)
-                                    setReceiveQty('')
-                                    setEditPart(p)
-                                  }}
-                                >
-                                  Edit
-                                </button>
-                                <button
-                                  type="button"
-                                  style={{ display: 'block', width: '100%', padding: '0.5rem 0.75rem', textAlign: 'left', border: 'none', background: 'none', cursor: 'pointer', fontSize: '0.9rem' }}
-                                  onClick={() => { setActionMenuOpenId(null); setIssuePart(p) }}
-                                  disabled={p.stock <= 0}
-                                >
-                                  Keluar
-                                </button>
-                                <button
-                                  type="button"
-                                  style={{ display: 'block', width: '100%', padding: '0.5rem 0.75rem', textAlign: 'left', border: 'none', background: 'none', cursor: 'pointer', fontSize: '0.9rem' }}
-                                  onClick={() => setReceivePartId(p.id)}
-                                >
-                                  Masuk
-                                </button>
-                                <button
-                                  type="button"
-                                  style={{ display: 'block', width: '100%', padding: '0.5rem 0.75rem', textAlign: 'left', border: 'none', background: 'none', cursor: 'pointer', fontSize: '0.9rem', color: '#991b1b' }}
-                                  onClick={() => {
-                                    setActionMenuOpenId(null)
-                                    setReceivePartId(null)
-                                    setReceiveQty('')
-                                    if (window.confirm(`Hapus spare part ${p.partCode} (${p.name})?`)) {
-                                      fetch(apiUrl(`/api/inventory/spare-parts/${p.id}`), { method: 'DELETE' })
-                                        .then((r) => {
-                                          if (r.ok) {
-                                            load()
-                                            loadHistory()
-                                          }
-                                        })
-                                        .catch(() => {})
-                                    }
-                                  }}
-                                >
-                                  Delete
-                                </button>
-                              </>
-                            )}
+                            <button
+                              type="button"
+                              style={{ display: 'block', width: '100%', padding: '0.5rem 0.75rem', textAlign: 'left', border: 'none', background: 'none', cursor: 'pointer', fontSize: '0.9rem' }}
+                              onClick={() => {
+                                setActionMenuOpenId(null)
+                                setEditPart(p)
+                              }}
+                            >
+                              Edit
+                            </button>
+                            <button
+                              type="button"
+                              style={{ display: 'block', width: '100%', padding: '0.5rem 0.75rem', textAlign: 'left', border: 'none', background: 'none', cursor: 'pointer', fontSize: '0.9rem' }}
+                              onClick={() => { setActionMenuOpenId(null); setIssuePart(p) }}
+                              disabled={p.stock <= 0}
+                            >
+                              Keluar
+                            </button>
+                            <button
+                              type="button"
+                              style={{ display: 'block', width: '100%', padding: '0.5rem 0.75rem', textAlign: 'left', border: 'none', background: 'none', cursor: 'pointer', fontSize: '0.9rem' }}
+                              onClick={() => {
+                                setActionMenuOpenId(null)
+                                setReceivePart(p)
+                              }}
+                            >
+                              Masuk
+                            </button>
+                            <button
+                              type="button"
+                              style={{ display: 'block', width: '100%', padding: '0.5rem 0.75rem', textAlign: 'left', border: 'none', background: 'none', cursor: 'pointer', fontSize: '0.9rem', color: '#991b1b' }}
+                              onClick={() => {
+                                setActionMenuOpenId(null)
+                                if (window.confirm(`Hapus spare part ${p.partCode} (${p.name})?`)) {
+                                  fetch(apiUrl(`/api/inventory/spare-parts/${p.id}`), { method: 'DELETE' })
+                                    .then((r) => {
+                                      if (r.ok) {
+                                        load()
+                                        loadHistory()
+                                      }
+                                    })
+                                    .catch(() => {})
+                                }
+                              }}
+                            >
+                              Delete
+                            </button>
                           </div>
                         )}
                       </div>
@@ -622,6 +555,7 @@ export function Inventory() {
                 { header: 'Qty', key: 'qty' },
                 { header: 'Unit', key: 'unit' },
                 { header: 'PIC', getValue: (h) => h.pic || '—' },
+                { header: 'Validasi Gudang', getValue: (h) => h.validatedBy || '—' },
                 { header: 'Keterangan', getValue: (h) => h.reason || '—' },
               ]
               exportToCsv(history, columns, `history-spare-parts-${new Date().toISOString().slice(0, 10)}.csv`)
@@ -665,13 +599,14 @@ export function Inventory() {
               <th style={{ padding: '0.75rem' }}>Qty</th>
               <th style={{ padding: '0.75rem' }}>Unit</th>
               <th style={{ padding: '0.75rem' }}>PIC</th>
+              <th style={{ padding: '0.75rem' }}>Validasi Gudang</th>
               <th style={{ padding: '0.75rem' }}>Keterangan</th>
             </tr>
           </thead>
           <tbody>
             {history.length === 0 ? (
               <tr>
-                <td colSpan={8} style={{ padding: '1.5rem', textAlign: 'center', color: '#64748b' }}>
+                <td colSpan={9} style={{ padding: '1.5rem', textAlign: 'center', color: '#64748b' }}>
                   Belum ada riwayat transaksi spare part.
                 </td>
               </tr>
@@ -697,6 +632,7 @@ export function Inventory() {
                   <td style={{ padding: '0.75rem' }}>{h.qty}</td>
                   <td style={{ padding: '0.75rem' }}>{h.unit}</td>
                   <td style={{ padding: '0.75rem' }}>{h.pic || '—'}</td>
+                  <td style={{ padding: '0.75rem' }}>{h.validatedBy || '—'}</td>
                   <td style={{ padding: '0.75rem' }}>{h.reason || '—'}</td>
                 </tr>
               ))
@@ -761,6 +697,17 @@ export function Inventory() {
           onClose={() => setIssuePart(null)}
           onSuccess={() => {
             setIssuePart(null)
+            load()
+            loadHistory()
+          }}
+        />
+      )}
+      {receivePart && (
+        <ReceiveSparePartModal
+          part={receivePart}
+          onClose={() => setReceivePart(null)}
+          onSuccess={() => {
+            setReceivePart(null)
             load()
             loadHistory()
           }}

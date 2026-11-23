@@ -31,7 +31,10 @@ const DEFAULT_AUTH_USERS: SeedUser[] = [
   { username: 'spvdiecast', password: 'Spv!#2026', displayName: 'Die Cast Supervisor', role: 'Supervisor' },
   { username: 'spvmtc', password: 'Spv!#2026', displayName: 'Maintenance Supervisor', role: 'Supervisor' },
   { username: 'teknisi', password: 'teknisi123', displayName: 'Teknisi Maintenance', role: 'Technician' },
+  { username: 'gudang', password: 'Gudang!#2026', displayName: 'Tim Gudang', role: 'Warehouse' },
 ]
+
+const WAREHOUSE_APPROVER_ROLES = new Set(['warehouse', 'admin'])
 
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '12h'
 const SALT_ROUNDS = 10
@@ -85,6 +88,46 @@ export async function ensureDefaultUsers(): Promise<void> {
     )
   }
   console.log('[auth] Seed users synced:', DEFAULT_AUTH_USERS.map((u) => u.username).join(', '))
+}
+
+export async function ensureSparePartHistoryValidation(): Promise<void> {
+  await query(`
+    ALTER TABLE spare_part_history
+    ADD COLUMN IF NOT EXISTS validated_by VARCHAR(120)
+  `)
+}
+
+/** Verifikasi nama + password tim gudang untuk transaksi stok masuk/keluar. */
+export async function verifyWarehouseApproval(
+  name: string,
+  password: string
+): Promise<{ user?: AuthUser; error?: string }> {
+  const normalized = name.trim().toLowerCase()
+  if (!normalized || !password) {
+    return { error: 'Nama dan password gudang wajib diisi.' }
+  }
+
+  const result = await query<DbUserRow>(
+    `SELECT id, username, password_hash, display_name, role, is_active
+     FROM app_users
+     WHERE LOWER(username) = $1 OR LOWER(display_name) = $1`,
+    [normalized]
+  )
+  if (result.rows.length === 0) {
+    return { error: 'Nama atau password gudang tidak valid.' }
+  }
+
+  for (const row of result.rows) {
+    if (!row.is_active) continue
+    const valid = await bcrypt.compare(password, row.password_hash)
+    if (!valid) continue
+    if (!WAREHOUSE_APPROVER_ROLES.has(row.role.trim().toLowerCase())) {
+      return { error: 'Akun ini tidak berhak validasi gudang. Gunakan akun Tim Gudang.' }
+    }
+    return { user: toAuthUser(row) }
+  }
+
+  return { error: 'Nama atau password gudang tidak valid.' }
 }
 
 export async function verifyLogin(username: string, password: string): Promise<AuthUser | null> {
