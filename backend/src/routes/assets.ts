@@ -50,7 +50,9 @@ assetsRouter.get('/assets/:assetId/history', async (req, res) => {
 
     const workOrders = historyResult.rows.map((r) => rowToWorkOrder(r))
     const sparePartsReplaced = workOrders.filter((wo) =>
-      Boolean(wo.replacedSpareParts?.trim()) || Boolean(wo.replacedPartsSpec?.trim()) || wo.replacedPartsQty != null
+      Boolean(typeof wo.replacedSpareParts === 'string' && wo.replacedSpareParts.trim()) ||
+      Boolean(typeof wo.replacedPartsSpec === 'string' && wo.replacedPartsSpec.trim()) ||
+      wo.replacedPartsQty != null
     )
 
     const encodedAssetId = encodeURIComponent(String(asset.assetId))

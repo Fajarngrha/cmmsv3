@@ -161,7 +161,7 @@ export function signAccessToken(user: AuthUser): string {
   return jwt.sign(
     { sub: String(user.id), username: user.username, displayName: user.displayName, role: user.role },
     getJwtSecret(),
-    { expiresIn: JWT_EXPIRES_IN }
+    { expiresIn: JWT_EXPIRES_IN as jwt.SignOptions['expiresIn'],}
   )
 }
 
