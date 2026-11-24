@@ -27,8 +27,9 @@ interface SparePartMovement {
   partId: string
   partCode: string
   partName: string
+  section?: string
   spec?: string
-  type: 'in' | 'out'
+  type: 'in' | 'out' | 'edit'
   qty: number
   unit: string
   reason?: string
@@ -75,7 +76,8 @@ export function Inventory() {
   const [issuePart, setIssuePart] = useState<SparePart | null>(null)
   const [receivePart, setReceivePart] = useState<SparePart | null>(null)
   const [history, setHistory] = useState<SparePartMovement[]>([])
-  const [historyTypeFilter, setHistoryTypeFilter] = useState<'all' | 'in' | 'out'>('all')
+  const [historyTypeFilter, setHistoryTypeFilter] = useState<'all' | 'in' | 'out' | 'edit'>('all')
+  const [historySectionFilter, setHistorySectionFilter] = useState('')
   const [historySearch, setHistorySearch] = useState('')
   const [historyPage, setHistoryPage] = useState(1)
   const [importMessage, setImportMessage] = useState<{ type: 'ok' | 'err'; text: string } | null>(null)
@@ -250,22 +252,25 @@ export function Inventory() {
   const sectionOptions = [...new Set([...INVENTORY_SECTIONS, ...parts.map(sectionOf).filter(Boolean)])]
   const filteredHistory = useMemo(() => {
     const q = historySearch.trim().toLowerCase()
-    if (!q) return history
     return history.filter((h) => {
+      const section = h.section?.trim() || 'Umum'
+      if (historySectionFilter && section !== historySectionFilter) return false
+      if (!q) return true
       const haystack = [
         h.partName,
         h.partCode,
+        section,
         h.spec,
         h.pic,
         h.reason,
-        h.type === 'out' ? 'keluar' : 'masuk',
+        h.type === 'out' ? 'keluar' : h.type === 'edit' ? 'edit' : 'masuk',
       ]
         .filter(Boolean)
         .join(' ')
         .toLowerCase()
       return haystack.includes(q)
     })
-  }, [history, historySearch])
+  }, [history, historySearch, historySectionFilter])
   const totalHistory = filteredHistory.length
   const historyTotalPages = Math.max(1, Math.ceil(totalHistory / HISTORY_ROWS_PER_PAGE))
   const safeHistoryPage = Math.min(Math.max(1, historyPage), historyTotalPages)
@@ -274,7 +279,7 @@ export function Inventory() {
 
   useEffect(() => {
     setHistoryPage(1)
-  }, [historyTypeFilter, historySearch])
+  }, [historyTypeFilter, historySearch, historySectionFilter])
 
   return (
     <div className="page">
@@ -576,7 +581,7 @@ export function Inventory() {
       </div>
 
       <div className="card" style={{ marginTop: '1.5rem', overflow: 'auto' }}>
-        <h3 style={{ margin: '0 0 1rem', fontSize: '1rem' }}>History Spare Part Masuk & Keluar</h3>
+        <h3 style={{ margin: '0 0 1rem', fontSize: '1rem' }}>History Spare Part</h3>
         {/* <p style={{ margin: '0 0 1rem', fontSize: '0.85rem', color: '#64748b' }}>
           Rekapan transaksi untuk keperluan audit
         </p> */}
@@ -584,12 +589,24 @@ export function Inventory() {
           <select
             className="select"
             value={historyTypeFilter}
-            onChange={(e) => setHistoryTypeFilter(e.target.value as 'all' | 'in' | 'out')}
+            onChange={(e) => setHistoryTypeFilter(e.target.value as 'all' | 'in' | 'out' | 'edit')}
             style={{ width: 'auto', minWidth: 160 }}
           >
             <option value="all">Semua</option>
             <option value="in">Masuk</option>
             <option value="out">Keluar</option>
+            <option value="edit">Edit</option>
+          </select>
+          <select
+            className="select"
+            value={historySectionFilter}
+            onChange={(e) => setHistorySectionFilter(e.target.value)}
+            style={{ width: 'auto', minWidth: 180 }}
+          >
+            <option value="">Semua Section</option>
+            {sectionOptions.map((s) => (
+              <option key={s} value={s}>{s}</option>
+            ))}
           </select>
           <input
             type="search"
@@ -607,7 +624,8 @@ export function Inventory() {
                 { header: 'Tanggal', getValue: (h) => new Date(h.createdAt).toLocaleString('id-ID') },
                 { header: 'Spesifikasi', getValue: (h) => h.spec || '—' },
                 { header: 'Nama', key: 'partName' },
-                { header: 'Tipe', getValue: (h) => (h.type === 'in' ? 'Masuk' : 'Keluar') },
+                { header: 'Section', getValue: (h) => h.section || 'Umum' },
+                { header: 'Tipe', getValue: (h) => (h.type === 'in' ? 'Masuk' : h.type === 'edit' ? 'Edit' : 'Keluar') },
                 { header: 'Qty', key: 'qty' },
                 { header: 'Unit', key: 'unit' },
                 { header: 'PIC', getValue: (h) => h.pic || '—' },
@@ -628,7 +646,9 @@ export function Inventory() {
                   ? 'semua data history'
                   : historyTypeFilter === 'in'
                     ? 'history Masuk'
-                    : 'history Keluar'
+                    : historyTypeFilter === 'edit'
+                      ? 'history Edit'
+                      : 'history Keluar'
               if (!window.confirm(`Hapus ${scopeLabel}?`)) return
               const q = historyTypeFilter === 'all' ? '' : `?type=${historyTypeFilter}`
               fetch(apiUrl(`/api/inventory/spare-parts/history${q}`), { method: 'DELETE' })
@@ -650,6 +670,7 @@ export function Inventory() {
               <th style={{ padding: '0.75rem' }}>Tanggal</th>
               <th style={{ padding: '0.75rem' }}>Spesifikasi</th>
               <th style={{ padding: '0.75rem' }}>Nama</th>
+              <th style={{ padding: '0.75rem' }}>Section</th>
               <th style={{ padding: '0.75rem' }}>Tipe</th>
               <th style={{ padding: '0.75rem' }}>Qty</th>
               <th style={{ padding: '0.75rem' }}>Unit</th>
@@ -658,10 +679,12 @@ export function Inventory() {
             </tr>
           </thead>
           <tbody>
-            {history.length === 0 ? (
+            {filteredHistory.length === 0 ? (
               <tr>
                 <td colSpan={9} style={{ padding: '1.5rem', textAlign: 'center', color: '#64748b' }}>
-                  Belum ada riwayat transaksi spare part.
+                  {history.length === 0
+                    ? 'Belum ada riwayat transaksi spare part.'
+                    : 'Tidak ada riwayat untuk filter section ini.'}
                 </td>
               </tr>
             ) : (
@@ -672,15 +695,16 @@ export function Inventory() {
                   </td>
                   <td style={{ padding: '0.75rem' }}>{h.spec || '—'}</td>
                   <td style={{ padding: '0.75rem' }}>{h.partName}</td>
+                  <td style={{ padding: '0.75rem' }}>{h.section || 'Umum'}</td>
                   <td style={{ padding: '0.75rem' }}>
                     <span
                       className="badge"
                       style={{
-                        background: h.type === 'in' ? '#dcfce7' : '#fee2e2',
-                        color: h.type === 'in' ? '#166534' : '#991b1b',
+                        background: h.type === 'in' ? '#dcfce7' : h.type === 'edit' ? '#dbeafe' : '#fee2e2',
+                        color: h.type === 'in' ? '#166534' : h.type === 'edit' ? '#1e40af' : '#991b1b',
                       }}
                     >
-                      {h.type === 'in' ? 'Masuk' : 'Keluar'}
+                      {h.type === 'in' ? 'Masuk' : h.type === 'edit' ? 'Edit' : 'Keluar'}
                     </span>
                   </td>
                   <td style={{ padding: '0.75rem' }}>{h.qty}</td>

@@ -3,6 +3,38 @@ import { verifyManagerApproval } from '../auth.js'
 import { query } from '../db/index.js'
 import { rowToSparePart, rowToSparePartMovement } from '../db/mappers.js'
 
+function showValue(value: unknown): string {
+  if (value == null || String(value).trim() === '') return 'kosong'
+  return String(value).trim()
+}
+
+function describeSparePartChanges(
+  before: Record<string, unknown>,
+  after: Record<string, unknown>
+): string[] {
+  const fields: Array<[string, string]> = [
+    ['Nama', 'name'],
+    ['Section', 'section'],
+    ['Spesifikasi', 'spec'],
+    ['Untuk Mesin', 'for_machine'],
+    ['Category', 'category'],
+    ['Stock', 'stock'],
+    ['Min Stock', 'min_stock'],
+    ['Unit', 'unit'],
+    ['Lokasi', 'location'],
+  ]
+  return fields.flatMap(([label, key]) => {
+    const oldValue = showValue(before[key])
+    const newValue = showValue(after[key])
+    return oldValue === newValue ? [] : [`${label} ${oldValue} → ${newValue}`]
+  })
+}
+
+function formatMovementReason(label: string, reason?: string): string {
+  const note = reason?.trim()
+  return note ? `${label}. Keterangan: ${note}` : label
+}
+
 export const inventoryRouter = Router()
 
 inventoryRouter.get('/inventory/spare-parts', async (_, res) => {
@@ -59,9 +91,9 @@ inventoryRouter.post('/inventory/spare-parts', async (req, res) => {
     const newPart = rowToSparePart(result.rows[0])
     if (newPart.stock > 0) {
       await query(
-        `INSERT INTO spare_part_history (part_id, part_code, part_name, type, qty, unit, reason, pic)
-         VALUES ($1, $2, $3, 'in', $4, $5, 'Stok awal', $6)`,
-        [result.rows[0].id, newPart.partCode, newPart.name, newPart.stock, newPart.unit, body.pic?.trim() || null]
+        `INSERT INTO spare_part_history (part_id, part_code, part_name, section, type, qty, unit, reason, pic)
+         VALUES ($1, $2, $3, $4, 'in', $5, $6, 'Stok awal', $7)`,
+        [result.rows[0].id, newPart.partCode, newPart.name, newPart.section || 'Umum', newPart.stock, newPart.unit, body.pic?.trim() || null]
       )
     }
     res.status(201).json(newPart)
@@ -123,9 +155,9 @@ inventoryRouter.post('/inventory/spare-parts/import', async (req, res) => {
       const newPart = rowToSparePart(result.rows[0])
       if (newPart.stock > 0) {
         await query(
-          `INSERT INTO spare_part_history (part_id, part_code, part_name, type, qty, unit, reason)
-           VALUES ($1, $2, $3, 'in', $4, $5, 'Stok awal (import)')`,
-          [result.rows[0].id, newPart.partCode, newPart.name, newPart.stock, newPart.unit]
+          `INSERT INTO spare_part_history (part_id, part_code, part_name, section, type, qty, unit, reason)
+           VALUES ($1, $2, $3, $4, 'in', $5, $6, 'Stok awal (import)')`,
+          [result.rows[0].id, newPart.partCode, newPart.name, newPart.section || 'Umum', newPart.stock, newPart.unit]
         )
       }
       created.push(newPart)
@@ -141,10 +173,11 @@ inventoryRouter.get('/inventory/spare-parts/history', async (req, res) => {
   try {
     const type = req.query.type as string | undefined
     let result
-    if (type === 'in' || type === 'out') {
+    if (type === 'in' || type === 'out' || type === 'edit') {
       result = await query(
         `
-        SELECT h.*, p.spec
+        SELECT h.*, p.spec,
+               COALESCE(NULLIF(TRIM(h.section), ''), NULLIF(TRIM(p.section), ''), 'Umum') AS section
         FROM spare_part_history h
         LEFT JOIN spare_parts p
           ON p.id = h.part_id
@@ -157,7 +190,8 @@ inventoryRouter.get('/inventory/spare-parts/history', async (req, res) => {
     } else {
       result = await query(
         `
-        SELECT h.*, p.spec
+        SELECT h.*, p.spec,
+               COALESCE(NULLIF(TRIM(h.section), ''), NULLIF(TRIM(p.section), ''), 'Umum') AS section
         FROM spare_part_history h
         LEFT JOIN spare_parts p
           ON p.id = h.part_id
@@ -177,7 +211,7 @@ inventoryRouter.delete('/inventory/spare-parts/history', async (req, res) => {
   try {
     const type = req.query.type as string | undefined
     let result
-    if (type === 'in' || type === 'out') {
+    if (type === 'in' || type === 'out' || type === 'edit') {
       result = await query('DELETE FROM spare_part_history WHERE type = $1', [type])
     } else {
       result = await query('DELETE FROM spare_part_history')
@@ -283,29 +317,29 @@ inventoryRouter.patch('/inventory/spare-parts/:id', async (req, res) => {
     )
     if (result.rows.length === 0) return res.status(404).json({ error: 'Spare part tidak ditemukan.' })
 
-    if (nextStock !== null) {
+    const after = result.rows[0]
+    const changes = describeSparePartChanges(before, after)
+    if (changes.length > 0) {
       const oldStock = Number(before.stock)
-      const diff = nextStock - oldStock
-      if (diff !== 0) {
-        await query(
-          `INSERT INTO spare_part_history (part_id, part_code, part_name, type, qty, unit, reason, pic, validated_by)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
-          [
-            id,
-            before.part_code,
-            before.name,
-            diff > 0 ? 'in' : 'out',
-            Math.abs(diff),
-            before.unit,
-            `Penyesuaian stok aktual (${oldStock} → ${nextStock})`,
-            approvedBy,
-            approvedBy,
-          ]
-        )
-      }
+      const newStock = Number(after.stock)
+      await query(
+        `INSERT INTO spare_part_history (part_id, part_code, part_name, section, type, qty, unit, reason, pic, validated_by)
+         VALUES ($1, $2, $3, $4, 'edit', $5, $6, $7, $8, $9)`,
+        [
+          id,
+          after.part_code,
+          after.name,
+          String(after.section || 'Umum'),
+          Math.abs(newStock - oldStock),
+          after.unit,
+          `Edit oleh ${approvedBy}: ${changes.join('; ')}`,
+          approvedBy,
+          approvedBy,
+        ]
+      )
     }
 
-    res.json(rowToSparePart(result.rows[0]))
+    res.json(rowToSparePart(after))
   } catch (e) {
     console.error(e)
     res.status(500).json({ error: 'Gagal mengubah data spare part' })
@@ -339,9 +373,9 @@ inventoryRouter.patch('/inventory/spare-parts/:id/issue', async (req, res) => {
     if (stock < qty) return res.status(400).json({ error: `Stock tidak cukup. Tersedia: ${stock} ${row.unit}.` })
     await query('UPDATE spare_parts SET stock = stock - $1 WHERE id = $2', [qty, id])
     await query(
-      `INSERT INTO spare_part_history (part_id, part_code, part_name, type, qty, unit, reason, pic)
-       VALUES ($1, $2, $3, 'out', $4, $5, $6, $7)`,
-      [id, row.part_code, row.name, qty, row.unit, body.reason?.trim() || null, pic]
+      `INSERT INTO spare_part_history (part_id, part_code, part_name, section, type, qty, unit, reason, pic)
+       VALUES ($1, $2, $3, $4, 'out', $5, $6, $7, $8)`,
+      [id, row.part_code, row.name, row.section || 'Umum', qty, row.unit, formatMovementReason('Barang keluar', body.reason), pic]
     )
     const updated = await query('SELECT * FROM spare_parts WHERE id = $1', [id])
     res.json(rowToSparePart(updated.rows[0]))
@@ -364,9 +398,9 @@ inventoryRouter.patch('/inventory/spare-parts/:id/receive', async (req, res) => 
     const row = partResult.rows[0]
     await query('UPDATE spare_parts SET stock = stock + $1 WHERE id = $2', [qty, id])
     await query(
-      `INSERT INTO spare_part_history (part_id, part_code, part_name, type, qty, unit, reason, pic)
-       VALUES ($1, $2, $3, 'in', $4, $5, $6, $7)`,
-      [id, row.part_code, row.name, qty, row.unit, body.reason?.trim() || null, pic]
+      `INSERT INTO spare_part_history (part_id, part_code, part_name, section, type, qty, unit, reason, pic)
+       VALUES ($1, $2, $3, $4, 'in', $5, $6, $7, $8)`,
+      [id, row.part_code, row.name, row.section || 'Umum', qty, row.unit, formatMovementReason('Barang masuk', body.reason), pic]
     )
     const updated = await query('SELECT * FROM spare_parts WHERE id = $1', [id])
     res.json(rowToSparePart(updated.rows[0]))

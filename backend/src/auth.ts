@@ -90,6 +90,22 @@ export async function ensureSparePartHistoryValidation(): Promise<void> {
     ALTER TABLE spare_part_history
     ADD COLUMN IF NOT EXISTS validated_by VARCHAR(120)
   `)
+  await query(`ALTER TABLE spare_part_history DROP CONSTRAINT IF EXISTS spare_part_history_type_check`)
+  await query(`
+    ALTER TABLE spare_part_history
+    ADD CONSTRAINT spare_part_history_type_check
+    CHECK (type IN ('in', 'out', 'edit'))
+  `)
+  await query(`ALTER TABLE spare_part_history ADD COLUMN IF NOT EXISTS section VARCHAR(100)`)
+  await query(`
+    UPDATE spare_part_history h
+    SET section = COALESCE(NULLIF(TRIM(p.section), ''), 'Umum')
+    FROM spare_parts p
+    WHERE h.part_id = p.id
+      AND (h.section IS NULL OR TRIM(h.section) = '')
+  `)
+  await query(`UPDATE spare_part_history SET section = 'Umum' WHERE section IS NULL OR TRIM(section) = ''`)
+  await query(`CREATE INDEX IF NOT EXISTS idx_spare_part_history_section ON spare_part_history (section)`)
 }
 
 export async function ensureSparePartsSection(): Promise<void> {
