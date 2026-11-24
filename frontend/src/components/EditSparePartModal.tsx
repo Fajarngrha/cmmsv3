@@ -183,9 +183,9 @@ export function EditSparePartModal({ part, onClose, onSuccess }: EditSparePartMo
               onChange={(e) => setStock(e.target.value === '' ? '' : Number(e.target.value))}
               required
             />
-            <p style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '0.25rem' }}>
+            {/* <p style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '0.25rem' }}>
               Isi jumlah fisik saat ini. Unit: {part.unit || 'pcs'}. Stok sistem sekarang: {part.stock}.
-            </p>
+            </p> */}
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem' }}>
@@ -279,7 +279,7 @@ export function EditSparePartModal({ part, onClose, onSuccess }: EditSparePartMo
                   className="input"
                   value={managerName}
                   onChange={(e) => setManagerName(e.target.value)}
-                  placeholder="Username atau nama manager"
+                  placeholder="Nama"
                   autoComplete="off"
                   autoFocus
                   required
@@ -293,7 +293,7 @@ export function EditSparePartModal({ part, onClose, onSuccess }: EditSparePartMo
                   type="password"
                   value={managerPassword}
                   onChange={(e) => setManagerPassword(e.target.value)}
-                  placeholder="Password akun manager"
+                  placeholder="Password"
                   autoComplete="off"
                   required
                 />
