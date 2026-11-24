@@ -641,17 +641,21 @@ export function Inventory() {
             className="btn"
             style={{ background: '#fee2e2', color: '#991b1b', border: '1px solid #fecaca' }}
             onClick={() => {
-              const scopeLabel =
-                historyTypeFilter === 'all'
-                  ? 'semua data history'
-                  : historyTypeFilter === 'in'
-                    ? 'history Masuk'
-                    : historyTypeFilter === 'edit'
-                      ? 'history Edit'
-                      : 'history Keluar'
-              if (!window.confirm(`Hapus ${scopeLabel}?`)) return
-              const q = historyTypeFilter === 'all' ? '' : `?type=${historyTypeFilter}`
-              fetch(apiUrl(`/api/inventory/spare-parts/history${q}`), { method: 'DELETE' })
+              if (filteredHistory.length === 0) {
+                window.alert('Tidak ada riwayat yang sesuai filter atau pencarian.')
+                return
+              }
+              const filters = [
+                historyTypeFilter === 'all' ? 'semua tipe' : historyTypeFilter === 'in' ? 'Masuk' : historyTypeFilter === 'edit' ? 'Edit' : 'Keluar',
+                historySectionFilter || 'semua section',
+                historySearch.trim() ? `pencarian "${historySearch.trim()}"` : '',
+              ].filter(Boolean)
+              if (!window.confirm(`Hapus ${filteredHistory.length} riwayat yang sesuai filter (${filters.join(', ')})? Data di luar filter tidak dihapus.`)) return
+              fetch(apiUrl('/api/inventory/spare-parts/history'), {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ids: filteredHistory.map((h) => Number(h.id)) }),
+              })
                 .then((r) => {
                   if (r.ok) {
                     loadHistory()

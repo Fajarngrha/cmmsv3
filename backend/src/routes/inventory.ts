@@ -209,13 +209,12 @@ inventoryRouter.get('/inventory/spare-parts/history', async (req, res) => {
 
 inventoryRouter.delete('/inventory/spare-parts/history', async (req, res) => {
   try {
-    const type = req.query.type as string | undefined
-    let result
-    if (type === 'in' || type === 'out' || type === 'edit') {
-      result = await query('DELETE FROM spare_part_history WHERE type = $1', [type])
-    } else {
-      result = await query('DELETE FROM spare_part_history')
+    const rawIds = Array.isArray(req.body?.ids) ? req.body.ids : []
+    const ids = rawIds.map((id: unknown) => Number(id)).filter((id: number) => Number.isInteger(id) && id > 0)
+    if (ids.length === 0) {
+      return res.status(400).json({ error: 'Tidak ada riwayat yang sesuai filter untuk dihapus.' })
     }
+    const result = await query('DELETE FROM spare_part_history WHERE id = ANY($1::int[])', [ids])
     res.json({ deleted: result.rowCount ?? 0 })
   } catch (e) {
     console.error(e)
