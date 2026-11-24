@@ -1,4 +1,5 @@
 import { Router } from 'express'
+import { verifyManagerApproval } from '../auth.js'
 import { query } from '../db/index.js'
 import { rowToSparePart, rowToSparePartMovement } from '../db/mappers.js'
 
@@ -198,8 +199,17 @@ inventoryRouter.patch('/inventory/spare-parts/:id', async (req, res) => {
       forMachine?: string
       category?: string
       minStock?: number
+      stock?: number
       location?: string
+      managerName?: string
+      managerPassword?: string
     }
+
+    const approval = await verifyManagerApproval(body.managerName ?? '', body.managerPassword ?? '')
+    if (approval.error || !approval.user) {
+      return res.status(401).json({ error: approval.error || 'Validasi manager gagal.' })
+    }
+    const approvedBy = approval.user.displayName || approval.user.username
 
     const updates: string[] = []
     const params: unknown[] = []
@@ -248,9 +258,23 @@ inventoryRouter.patch('/inventory/spare-parts/:id', async (req, res) => {
       params.push(body.location.trim())
     }
 
+    let nextStock: number | null = null
+    if (body.stock !== undefined) {
+      nextStock = typeof body.stock === 'number' ? body.stock : Number(body.stock)
+      if (!Number.isInteger(nextStock) || nextStock < 0) {
+        return res.status(400).json({ error: 'Stock harus bilangan bulat >= 0.' })
+      }
+      updates.push(`stock = $${idx++}`)
+      params.push(nextStock)
+    }
+
     if (updates.length === 0) {
       return res.status(400).json({ error: 'Tidak ada data yang diubah.' })
     }
+
+    const current = await query('SELECT * FROM spare_parts WHERE id = $1', [id])
+    if (current.rows.length === 0) return res.status(404).json({ error: 'Spare part tidak ditemukan.' })
+    const before = current.rows[0]
 
     params.push(id)
     const result = await query(
@@ -258,6 +282,28 @@ inventoryRouter.patch('/inventory/spare-parts/:id', async (req, res) => {
       params
     )
     if (result.rows.length === 0) return res.status(404).json({ error: 'Spare part tidak ditemukan.' })
+
+    if (nextStock !== null) {
+      const oldStock = Number(before.stock)
+      const diff = nextStock - oldStock
+      if (diff !== 0) {
+        await query(
+          `INSERT INTO spare_part_history (part_id, part_code, part_name, type, qty, unit, reason, pic, validated_by)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+          [
+            id,
+            before.part_code,
+            before.name,
+            diff > 0 ? 'in' : 'out',
+            Math.abs(diff),
+            before.unit,
+            `Penyesuaian stok aktual (${oldStock} → ${nextStock})`,
+            approvedBy,
+            approvedBy,
+          ]
+        )
+      }
+    }
 
     res.json(rowToSparePart(result.rows[0]))
   } catch (e) {

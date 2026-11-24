@@ -279,9 +279,9 @@ export function Inventory() {
   return (
     <div className="page">
       <h1 style={{ margin: '0 0 0.25rem', fontSize: '1.5rem' }}>Spare Parts Inventory</h1>
-      <p style={{ margin: '0 0 1.5rem', color: '#64748b', fontSize: '0.9rem' }}>
+      {/* <p style={{ margin: '0 0 1.5rem', color: '#64748b', fontSize: '0.9rem' }}>
       Inventory terpusat: setiap section dapat mencari dan memakai spare part sesuai area (plus stok Umum).
-      </p>
+      </p> */}
 
       <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '1rem', marginBottom: '1.5rem' }}>
         <div className="card" style={{ borderLeft: '4px solid #3b82f6' }}>
@@ -350,9 +350,9 @@ export function Inventory() {
           {importMessage.text}
         </p>
       )}
-      <p style={{ margin: '-0.5rem 0 1rem', fontSize: '0.8rem', color: '#64748b' }}>
+      {/* <p style={{ margin: '-0.5rem 0 1rem', fontSize: '0.8rem', color: '#64748b' }}>
         Format import: file <strong>.csv</strong>. Kolom wajib: <strong>Nama</strong>, <strong>Category</strong>. Isi <strong>Section</strong> (contoh Molding, Die Casting, atau Umum). Opsional: Part Code, Stock, Min Stock, Unit, Location, Spesifikasi, Untuk Mesin.
-      </p>
+      </p> */}
 
       <div className="card" style={{ marginBottom: '1.5rem' }}>
         <h3 style={{ margin: '0 0 1rem', fontSize: '1rem' }}>Grafik Penggunaan Sparepart</h3>
@@ -577,9 +577,9 @@ export function Inventory() {
 
       <div className="card" style={{ marginTop: '1.5rem', overflow: 'auto' }}>
         <h3 style={{ margin: '0 0 1rem', fontSize: '1rem' }}>History Spare Part Masuk & Keluar</h3>
-        <p style={{ margin: '0 0 1rem', fontSize: '0.85rem', color: '#64748b' }}>
+        {/* <p style={{ margin: '0 0 1rem', fontSize: '0.85rem', color: '#64748b' }}>
           Rekapan transaksi untuk keperluan audit
-        </p>
+        </p> */}
         <div style={{ marginBottom: '1rem', display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
           <select
             className="select"
@@ -654,7 +654,6 @@ export function Inventory() {
               <th style={{ padding: '0.75rem' }}>Qty</th>
               <th style={{ padding: '0.75rem' }}>Unit</th>
               <th style={{ padding: '0.75rem' }}>PIC</th>
-              <th style={{ padding: '0.75rem' }}>Validasi Gudang</th>
               <th style={{ padding: '0.75rem' }}>Keterangan</th>
             </tr>
           </thead>

@@ -24,6 +24,7 @@ interface ReceiveSparePartModalProps {
 export function ReceiveSparePartModal({ part, onClose, onSuccess }: ReceiveSparePartModalProps) {
   const [qty, setQty] = useState<number | ''>(1)
   const [nama, setNama] = useState('')
+  const [keterangan, setKeterangan] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
 
@@ -47,6 +48,7 @@ export function ReceiveSparePartModal({ part, onClose, onSuccess }: ReceiveSpare
       body: JSON.stringify({
         qty: qtyNum,
         pic: nama.trim(),
+        reason: keterangan.trim() || undefined,
       }),
     })
       .then((r) => {
@@ -141,6 +143,17 @@ export function ReceiveSparePartModal({ part, onClose, onSuccess }: ReceiveSpare
             <p style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '0.25rem' }}>
               Unit: {part.unit}
             </p>
+          </div>
+          <div className="form-group">
+            <label className="label" htmlFor="receive-keterangan">Keterangan</label>
+            <input
+              id="receive-keterangan"
+              className="input"
+              type="text"
+              value={keterangan}
+              onChange={(e) => setKeterangan(e.target.value)}
+              placeholder="e.g. Penerimaan PO, retur gudang"
+            />
           </div>
 
           {error && (

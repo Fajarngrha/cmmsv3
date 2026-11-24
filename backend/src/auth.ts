@@ -27,11 +27,8 @@ export interface AuthUser {
 
 const DEFAULT_AUTH_USERS: SeedUser[] = [
   { username: 'adminmtn', password: 'Admin!#2026', displayName: 'Administrator', role: 'Admin' },
-  { username: 'spvmolding', password: 'Spv!#2026', displayName: 'Molding Supervisor', role: 'Supervisor' },
-  { username: 'spvdiecast', password: 'Spv!#2026', displayName: 'Die Cast Supervisor', role: 'Supervisor' },
-  { username: 'spvmtc', password: 'Spv!#2026', displayName: 'Maintenance Supervisor', role: 'Supervisor' },
-  { username: 'teknisi', password: 'teknisi123', displayName: 'Teknisi Maintenance', role: 'Technician' },
-  { username: 'gudang', password: 'Gudang!#2026', displayName: 'Tim Gudang', role: 'Warehouse' },
+  { username: 'warehouse-2w', password: 'Warehouse!#2026', displayName: 'Warehouse 2W', role: 'Admin' },
+  { username: 'Erwin Sutarno', password: 'Mngmtn!#2026', displayName: 'Erwin Sutarno', role: 'Manager' },
 ]
 
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '12h'
@@ -99,6 +96,41 @@ export async function ensureSparePartsSection(): Promise<void> {
   await query(`ALTER TABLE spare_parts ADD COLUMN IF NOT EXISTS section VARCHAR(100)`)
   await query(`CREATE INDEX IF NOT EXISTS idx_spare_parts_section ON spare_parts (section)`)
   await query(`UPDATE spare_parts SET section = 'Umum' WHERE section IS NULL OR TRIM(section) = ''`)
+}
+
+const MANAGER_ROLES = new Set(['admin', 'manager', 'supervisor'])
+
+/** Nama + password akun Manager/Admin untuk mengesahkan perubahan stok. */
+export async function verifyManagerApproval(
+  name: string,
+  password: string
+): Promise<{ user?: AuthUser; error?: string }> {
+  const normalized = name.trim().toLowerCase()
+  if (!normalized || !password) {
+    return { error: 'Manager dan password wajib diisi.' }
+  }
+
+  const result = await query<DbUserRow>(
+    `SELECT id, username, password_hash, display_name, role, is_active
+     FROM app_users
+     WHERE LOWER(username) = $1 OR LOWER(display_name) = $1`,
+    [normalized]
+  )
+  if (result.rows.length === 0) {
+    return { error: 'Nama atau password manager tidak valid.' }
+  }
+
+  for (const row of result.rows) {
+    if (!row.is_active) continue
+    const valid = await bcrypt.compare(password, row.password_hash)
+    if (!valid) continue
+    if (!MANAGER_ROLES.has(row.role.trim().toLowerCase())) {
+      return { error: 'Akun ini tidak berhak menyetujui update stok.' }
+    }
+    return { user: toAuthUser(row) }
+  }
+
+  return { error: 'Nama atau password manager tidak valid.' }
 }
 
 export async function verifyLogin(username: string, password: string): Promise<AuthUser | null> {
