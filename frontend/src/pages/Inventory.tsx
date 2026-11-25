@@ -194,7 +194,7 @@ export function Inventory() {
   const matchesSectionFilter = (p: SparePart) => {
     if (!sectionFilter) return true
     const section = sectionOf(p)
-    return section === sectionFilter || section === 'Umum'
+    return section === sectionFilter
   }
 
   const partsForSection = parts.filter(matchesSectionFilter)
