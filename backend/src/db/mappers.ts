@@ -1,5 +1,7 @@
 /** Map DB rows (snake_case) to API shape (camelCase) */
 
+import { canonicalSection } from '../sections.js'
+
 export function rowToWorkOrder(row: Record<string, unknown>) {
   return {
     id: String(row.id),
@@ -49,7 +51,7 @@ export function rowToSparePart(row: Record<string, unknown>) {
     id: String(row.id),
     partCode: row.part_code,
     name: row.name,
-    section: (row.section as string) || 'Umum',
+    section: canonicalSection(row.section),
     category: row.category,
     stock: Number(row.stock ?? 0),
     minStock: Number(row.min_stock ?? 0),
@@ -66,7 +68,7 @@ export function rowToSparePartMovement(row: Record<string, unknown>) {
     partId: String(row.part_id),
     partCode: row.part_code,
     partName: row.part_name,
-    section: (row.section as string) || 'Umum',
+    section: canonicalSection(row.section),
     spec: row.spec ?? undefined,
     type: row.type as 'in' | 'out' | 'edit',
     qty: Number(row.qty),

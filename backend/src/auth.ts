@@ -1,6 +1,7 @@
 import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
 import { query } from './db/index.js'
+import { canonicalSection } from './sections.js'
 
 interface DbUserRow {
   id: number
@@ -112,6 +113,18 @@ export async function ensureSparePartsSection(): Promise<void> {
   await query(`ALTER TABLE spare_parts ADD COLUMN IF NOT EXISTS section VARCHAR(100)`)
   await query(`CREATE INDEX IF NOT EXISTS idx_spare_parts_section ON spare_parts (section)`)
   await query(`UPDATE spare_parts SET section = 'Umum' WHERE section IS NULL OR TRIM(section) = ''`)
+  const sections = await query<{ section: string }>(
+    `SELECT DISTINCT section FROM spare_parts
+     UNION
+     SELECT DISTINCT section FROM spare_part_history WHERE section IS NOT NULL`
+  )
+  for (const row of sections.rows) {
+    const current = row.section ?? ''
+    const next = canonicalSection(current)
+    if (!current || next === current) continue
+    await query(`UPDATE spare_parts SET section = $1 WHERE section = $2`, [next, current])
+    await query(`UPDATE spare_part_history SET section = $1 WHERE section = $2`, [next, current])
+  }
 }
 
 const MANAGER_ROLES = new Set(['admin', 'manager', 'supervisor'])

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { apiUrl } from '../api'
-import { INVENTORY_SECTIONS } from '../constants/sections'
+import { INVENTORY_SECTIONS, canonicalSection } from '../constants/sections'
 
 interface SparePart {
   id: string
@@ -24,7 +24,7 @@ interface EditSparePartModalProps {
 
 export function EditSparePartModal({ part, onClose, onSuccess }: EditSparePartModalProps) {
   const [name, setName] = useState(part.name)
-  const [section, setSection] = useState(part.section || 'Umum')
+  const [section, setSection] = useState(canonicalSection(part.section))
   const [spec, setSpec] = useState(part.spec ?? '')
   const [forMachine, setForMachine] = useState(part.forMachine ?? '')
   const [category, setCategory] = useState(part.category)

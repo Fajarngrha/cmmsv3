@@ -1,5 +1,6 @@
 import { Router } from 'express'
 import { verifyManagerApproval } from '../auth.js'
+import { canonicalSection } from '../sections.js'
 import { query } from '../db/index.js'
 import { rowToSparePart, rowToSparePartMovement } from '../db/mappers.js'
 
@@ -64,7 +65,7 @@ inventoryRouter.post('/inventory/spare-parts', async (req, res) => {
     }
     if (!body.name?.trim()) return res.status(400).json({ error: 'Nama spare part wajib diisi.' })
     if (!body.category?.trim()) return res.status(400).json({ error: 'Kategori wajib diisi.' })
-    const section = body.section?.trim() || 'Umum'
+    const section = canonicalSection(body.section)
     const countResult = await query('SELECT COUNT(*)::int AS c FROM spare_parts')
     const nextNum = (countResult.rows[0]?.c ?? 0) + 1
     const partCode = body.partCode?.trim() || `PRT-${String(nextNum).padStart(3, '0')}`
@@ -142,7 +143,7 @@ inventoryRouter.post('/inventory/spare-parts/import', async (req, res) => {
         [
           partCode,
           row.name.trim(),
-          row.section?.trim() || 'Umum',
+          canonicalSection(row.section),
           row.category.trim(),
           stock >= 0 ? stock : 0,
           minStock >= 0 ? minStock : 0,
@@ -257,7 +258,7 @@ inventoryRouter.patch('/inventory/spare-parts/:id', async (req, res) => {
 
     if (typeof body.section === 'string') {
       updates.push(`section = $${idx++}`)
-      params.push(body.section.trim() || 'Umum')
+      params.push(canonicalSection(body.section))
     }
 
     if (typeof body.spec === 'string') {

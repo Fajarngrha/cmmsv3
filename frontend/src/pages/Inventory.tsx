@@ -5,7 +5,7 @@ import { AddSparePartModal } from '../components/AddSparePartModal'
 import { EditSparePartModal } from '../components/EditSparePartModal'
 import { IssueSparePartModal } from '../components/IssueSparePartModal'
 import { ReceiveSparePartModal } from '../components/ReceiveSparePartModal'
-import { INVENTORY_SECTIONS } from '../constants/sections'
+import { INVENTORY_SECTIONS, canonicalSection } from '../constants/sections'
 import { buildCsvContent, csvField, downloadCsv, exportToCsv, parseCsvToObjects, type CsvColumn } from '../utils/exportToCsv'
 
 interface SparePart {
@@ -149,7 +149,7 @@ export function Inventory() {
               spec: csvField(r, 'Spesifikasi', 'spec') || undefined,
               forMachine: csvField(r, 'Untuk Mesin', 'forMachine') || undefined,
               category,
-              section: csvField(r, 'Section', 'section') || 'Umum',
+              section: canonicalSection(csvField(r, 'Section', 'section')),
               stock: Number(csvField(r, 'Stock', 'stock', 'Stok')) || 0,
               minStock: Number(csvField(r, 'Min Stock', 'minStock', 'Min Stok')) || 0,
               unit: csvField(r, 'Unit', 'unit') || 'pcs',
@@ -190,11 +190,10 @@ export function Inventory() {
     reader.readAsText(file, 'UTF-8')
   }
 
-  const sectionOf = (p: SparePart) => p.section?.trim() || 'Umum'
+  const sectionOf = (p: SparePart) => canonicalSection(p.section)
   const matchesSectionFilter = (p: SparePart) => {
     if (!sectionFilter) return true
-    const section = sectionOf(p)
-    return section === sectionFilter
+    return sectionOf(p) === canonicalSection(sectionFilter)
   }
 
   const partsForSection = parts.filter(matchesSectionFilter)
@@ -253,8 +252,8 @@ export function Inventory() {
   const filteredHistory = useMemo(() => {
     const q = historySearch.trim().toLowerCase()
     return history.filter((h) => {
-      const section = h.section?.trim() || 'Umum'
-      if (historySectionFilter && section !== historySectionFilter) return false
+      const section = canonicalSection(h.section)
+      if (historySectionFilter && section !== canonicalSection(historySectionFilter)) return false
       if (!q) return true
       const haystack = [
         h.partName,
@@ -311,7 +310,7 @@ export function Inventory() {
             const columns: CsvColumn<SparePart>[] = [
               { header: 'Part Code', key: 'partCode' },
               { header: 'Nama', key: 'name' },
-              { header: 'Section', getValue: (p) => p.section || 'Umum' },
+              { header: 'Section', getValue: (p) => canonicalSection(p.section) },
               { header: 'Spesifikasi', getValue: (p) => p.spec ?? '—' },
               { header: 'Untuk Mesin', getValue: (p) => p.forMachine ?? '—' },
               { header: 'Category', key: 'category' },
