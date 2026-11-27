@@ -83,8 +83,6 @@ export function Inventory() {
   const [importMessage, setImportMessage] = useState<{ type: 'ok' | 'err'; text: string } | null>(null)
   const [importing, setImporting] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const [actionMenuOpenId, setActionMenuOpenId] = useState<string | null>(null)
-  const actionMenuRef = useRef<HTMLDivElement>(null)
 
   const load = () => {
     fetch(apiUrl('/api/inventory/spare-parts'))
@@ -111,18 +109,6 @@ export function Inventory() {
   useEffect(() => {
     loadHistory()
   }, [historyTypeFilter])
-
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (actionMenuRef.current && !actionMenuRef.current.contains(e.target as Node)) {
-        setActionMenuOpenId(null)
-      }
-    }
-    if (actionMenuOpenId) {
-      document.addEventListener('mousedown', handleClickOutside)
-      return () => document.removeEventListener('mousedown', handleClickOutside)
-    }
-  }, [actionMenuOpenId])
 
   const handleImportFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -432,7 +418,7 @@ export function Inventory() {
                 <th style={{ padding: '0.75rem' }}>Unit</th>
                 <th style={{ padding: '0.75rem' }}>Lokasi</th>
                 <th style={{ padding: '0.75rem' }}>Status</th>
-                <th style={{ padding: '0.75rem', minWidth: 100 }}>Actions</th>
+                <th style={{ padding: '0.75rem', minWidth: 148 }}>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -459,84 +445,56 @@ export function Inventory() {
                         <span className="badge badge-completed">OK</span>
                       )}
                     </td>
-                    <td style={{ padding: '0.75rem', position: 'relative' }}>
-                      <div ref={actionMenuOpenId === p.id ? actionMenuRef : undefined} style={{ position: 'relative', display: 'inline-block' }}>
+                    <td style={{ padding: '0.75rem' }}>
+                      <div style={{ display: 'flex', gap: 6 }}>
                         <button
                           type="button"
-                          className="btn btn-secondary"
-                          style={{ padding: '0.35rem 0.5rem', fontSize: '0.9rem' }}
-                          onClick={() => {
-                            setActionMenuOpenId(actionMenuOpenId === p.id ? null : p.id)
-                          }}
-                          title="Aksi"
+                          title="Edit"
+                          aria-label="Edit"
+                          onClick={() => setEditPart(p)}
+                          style={{ width: 32, height: 32, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #bfdbfe', background: '#eff6ff', color: '#1d4ed8', borderRadius: 6, cursor: 'pointer' }}
                         >
-                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
                         </button>
-                        {actionMenuOpenId === p.id && (
-                          <div
-                            style={{
-                              position: 'absolute',
-                              top: '100%',
-                              right: 0,
-                              marginTop: 4,
-                              minWidth: 160,
-                              background: '#fff',
-                              border: '1px solid #e2e8f0',
-                              borderRadius: 8,
-                              boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-                              zIndex: 50,
-                              padding: '0.5rem',
-                            }}
-                          >
-                            <button
-                              type="button"
-                              style={{ display: 'block', width: '100%', padding: '0.5rem 0.75rem', textAlign: 'left', border: 'none', background: 'none', cursor: 'pointer', fontSize: '0.9rem' }}
-                              onClick={() => {
-                                setActionMenuOpenId(null)
-                                setEditPart(p)
-                              }}
-                            >
-                              Edit
-                            </button>
-                            <button
-                              type="button"
-                              style={{ display: 'block', width: '100%', padding: '0.5rem 0.75rem', textAlign: 'left', border: 'none', background: 'none', cursor: 'pointer', fontSize: '0.9rem' }}
-                              onClick={() => { setActionMenuOpenId(null); setIssuePart(p) }}
-                              disabled={p.stock <= 0}
-                            >
-                              Keluar
-                            </button>
-                            <button
-                              type="button"
-                              style={{ display: 'block', width: '100%', padding: '0.5rem 0.75rem', textAlign: 'left', border: 'none', background: 'none', cursor: 'pointer', fontSize: '0.9rem' }}
-                              onClick={() => {
-                                setActionMenuOpenId(null)
-                                setReceivePart(p)
-                              }}
-                            >
-                              Masuk
-                            </button>
-                            <button
-                              type="button"
-                              style={{ display: 'block', width: '100%', padding: '0.5rem 0.75rem', textAlign: 'left', border: 'none', background: 'none', cursor: 'pointer', fontSize: '0.9rem', color: '#991b1b' }}
-                              onClick={() => {
-                                setActionMenuOpenId(null)
-                                if (window.confirm(`Hapus spare part ${p.partCode} (${p.name})?`)) {
-                                  fetch(apiUrl(`/api/inventory/spare-parts/${p.id}`), { method: 'DELETE' })
-                                    .then((r) => {
-                                      if (r.ok) {
-                                        load()
-                                        loadHistory()
-                                      }
-                                    })
-                                    .catch(() => {})
-                                }
-                              }}
-                            >
-                              Delete
-                            </button>
-                          </div>
-                        )}
+                        <button
+                          type="button"
+                          title="Masuk"
+                          aria-label="Masuk"
+                          onClick={() => setReceivePart(p)}
+                          style={{ width: 32, height: 32, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #bbf7d0', background: '#f0fdf4', color: '#15803d', borderRadius: 6, cursor: 'pointer' }}
+                        >
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>
+                        </button>
+                        <button
+                          type="button"
+                          title={p.stock <= 0 ? 'Stok habis' : 'Keluar'}
+                          aria-label="Keluar"
+                          onClick={() => setIssuePart(p)}
+                          disabled={p.stock <= 0}
+                          style={{ width: 32, height: 32, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #fde68a', background: p.stock <= 0 ? '#f8fafc' : '#fffbeb', color: p.stock <= 0 ? '#94a3b8' : '#b45309', borderRadius: 6, cursor: p.stock <= 0 ? 'not-allowed' : 'pointer' }}
+                        >
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 21V9"/><path d="m7 14 5-5 5 5"/><path d="M5 3h14"/></svg>
+                        </button>
+                        <button
+                          type="button"
+                          title="Delete"
+                          aria-label="Delete"
+                          onClick={() => {
+                            if (window.confirm(`Hapus spare part ${p.partCode} (${p.name})?`)) {
+                              fetch(apiUrl(`/api/inventory/spare-parts/${p.id}`), { method: 'DELETE' })
+                                .then((r) => {
+                                  if (r.ok) {
+                                    load()
+                                    loadHistory()
+                                  }
+                                })
+                                .catch(() => {})
+                            }
+                          }}
+                          style={{ width: 32, height: 32, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #fecaca', background: '#fef2f2', color: '#b91c1c', borderRadius: 6, cursor: 'pointer' }}
+                        >
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
+                        </button>
                       </div>
                     </td>
                   </tr>
