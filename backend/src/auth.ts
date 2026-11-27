@@ -29,9 +29,9 @@ export interface AuthUser {
 const DEFAULT_AUTH_USERS: SeedUser[] = [
   { username: 'adminmtn', password: 'Admin!#2026', displayName: 'Administrator 2W', role: 'Admin' },
   { username: 'warehouse-2w', password: 'Warehouse!#2026', displayName: 'Warehouse 2W', role: 'Admin' },
-  {username: 'Chandra', password: 'Chandra(TTL)!#2026', displayName: 'Chandra', role: 'Manager' },
-  {username: 'Erwin', password: 'Erwin130175!#2026', displayName: 'Erwin Sutarno', role: 'Manager' },
-  {username: 'Harun', password: 'Harun(TTL)!#2026', displayName: 'MK Harun', role: 'Manager' },
+  { username: 'Chandra', password: 'Chandra(TTL)!#2026', displayName: 'Chandra', role: 'Manager' },
+  { username: 'Erwin', password: 'Erwin130175!#2026', displayName: 'Erwin Sutarno', role: 'Manager' },
+  { username: 'Harun', password: 'Harun(TTL)!#2026', displayName: 'MK Harun', role: 'Manager' },
   { username: 'adminmtn-4w', password: 'Mtn4w!#2026', displayName: 'Administrator 4W', role: 'Admin' },
   { username: 'warehouse-4w', password: 'Warehouse4w!#2026', displayName: 'Warehouse 4W', role: 'Admin' },
   { username: 'admindiesdc', password: 'Adminmtndc!#2026', displayName: 'Administrator Mtn DC 2W', role: 'Admin' },
